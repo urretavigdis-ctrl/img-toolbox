@@ -575,6 +575,7 @@ html.light .viewer-card--main {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 .stage-hud {
   position: absolute;
@@ -613,11 +614,13 @@ html.light .stage-note {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   padding: 42px 8px 8px;
+  overscroll-behavior: none;
 }
 .canvas-wrap--main {
   min-height: clamp(360px, 50vh, 600px);
+  touch-action: none;
 }
 .checkerboard {
   background:
