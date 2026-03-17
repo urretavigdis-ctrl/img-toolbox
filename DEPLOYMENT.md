@@ -77,7 +77,7 @@ npm run prepare:frontend
 在后端目录启动 API：
 
 ```bash
-cd 图像工具箱
+cd img-toolbox-app
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
@@ -86,6 +86,14 @@ npm install
 npm start
 ```
 
+> 如果部署到 Vercel，仓库根目录下的 `vercel.json` 会强制执行：
+>
+> ```bash
+> npm run prepare:frontend
+> ```
+>
+> 并把 `public/` 作为输出目录，因此 `IMGEXE_API_BASE_URL` 必须在 Vercel 项目环境变量里配置好。
+
 默认后端地址：
 
 - `http://localhost:3100`
@@ -93,7 +101,7 @@ npm start
 如果你想模拟前后端分离的前端配置：
 
 ```bash
-cd 图像工具箱
+cd img-toolbox-app
 IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
 ```
 
@@ -107,7 +115,7 @@ IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
 
 在 Render 控制台创建一个 **Web Service**，配置建议如下：
 
-- **Root Directory**: `图像工具箱`
+- **Root Directory**: 留空（仓库根目录）
 - **Runtime**: `Node`
 - **Build Command**:
 
@@ -175,7 +183,7 @@ curl https://你的-render-域名.onrender.com/api/health
 
 前端是纯静态站点，建议在 Vercel 中：
 
-- **Root Directory**: `图像工具箱`
+- **Root Directory**: 留空（仓库根目录）
 - **Framework Preset**: `Other`
 - **Build Command**:
 

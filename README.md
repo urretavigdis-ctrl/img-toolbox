@@ -19,6 +19,7 @@
 
 - [`DEPLOYMENT.md`](./DEPLOYMENT.md)
 - [`render.yaml`](./render.yaml)
+- [`vercel.json`](./vercel.json)
 
 ## 目录
 - `public/`：前端静态页面资源
@@ -29,6 +30,7 @@
 - `requirements.txt`：Python 依赖
 - `package.json`：Node 依赖与脚本
 - `render.yaml`：Render Blueprint 示例
+- `vercel.json`：Vercel 构建配置（会执行 `npm run prepare:frontend`）
 - `example/`：本地 smoke test 示例输入
 
 ## 前后端分离约定
@@ -76,13 +78,13 @@
 
 ### 1) 安装 Node 依赖
 ```bash
-cd 图像工具箱
+cd img-toolbox-app
 npm install
 ```
 
 ### 2) 创建并启用 Python 虚拟环境
 ```bash
-cd 图像工具箱
+cd img-toolbox-app
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
@@ -131,7 +133,7 @@ INPAINT_PYTHON=/absolute/path/to/python npm start
 
 ### 验证 1：先单独跑 Python 脚本
 ```bash
-cd 图像工具箱
+cd img-toolbox-app
 source .venv/bin/activate
 python telea_inpaint.py \
   --input /absolute/path/to/input.png \
