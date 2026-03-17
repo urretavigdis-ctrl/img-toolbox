@@ -1,0 +1,14 @@
+# Node
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Generated examples / temp
+example/
+*.log

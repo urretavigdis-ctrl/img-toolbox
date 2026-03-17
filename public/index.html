@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IMGEXE Clone / 去除水印.exe</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-left">
+          <div class="brand-dot"></div>
+          <div>
+            <div class="brand-title">图像工具箱</div>
+            <div class="brand-sub">IMGEXE.COM</div>
+          </div>
+        </div>
+        <div class="clock-wrap">
+          <div id="clock"></div>
+          <div id="date"></div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="side rail-left">
+          <button class="rail-item muted"><span>view_headline</span><em>长图拼接.exe</em></button>
+          <button class="rail-item muted"><span>grid_view</span><em>宫格拼图.exe</em></button>
+          <button class="rail-item muted"><span>compress</span><em>图片压缩.exe</em></button>
+          <button class="rail-item muted"><span>swap_horiz</span><em>格式转换.exe</em></button>
+          <button class="rail-item muted"><span>crop</span><em>图片裁剪.exe</em></button>
+        </aside>
+
+        <section class="workbench panel">
+          <div class="panel-title">工作台.EXE / 去除水印编辑器</div>
+          <div class="editor-grid">
+            <section class="canvas-panel panel-sub">
+              <div id="dropzone" class="dropzone">
+                <div class="drop-inner">
+                  <div class="drop-icon">add_photo_alternate</div>
+                  <div class="drop-main">点击或拖拽上传图片</div>
+                  <div class="drop-sub">支持 JPG · PNG · WEBP · 或 CTRL+V 粘贴</div>
+                </div>
+                <input id="fileInput" type="file" accept="image/*" hidden />
+                <div id="canvasStage" class="canvas-stage hidden">
+                  <canvas id="mainCanvas"></canvas>
+                  <canvas id="maskCanvas"></canvas>
+                </div>
+              </div>
+              <div class="canvas-actions">
+                <button id="reselectBtn" class="ghost-btn">upload_file 重新选图</button>
+              </div>
+            </section>
+
+            <aside class="control-panel panel-sub">
+              <section class="block">
+                <div class="block-title">控制面板.SYS</div>
+              </section>
+
+              <section class="block">
+                <div class="section-label">画笔设置 / BRUSH</div>
+                <div class="range-row">
+                  <div>画笔大小</div>
+                  <strong><span id="brushValue">30</span>px</strong>
+                </div>
+                <input id="brushSize" type="range" min="5" max="300" value="30" />
+                <div class="segmented">
+                  <button id="paintModeBtn" class="seg active">brush 画笔</button>
+                  <button id="eraseModeBtn" class="seg">ink_eraser 橡皮</button>
+                </div>
+                <p class="tip" id="brushTip">画笔模式：左键涂抹标记水印区域。</p>
+              </section>
+
+              <section class="block">
+                <div class="section-label">去除模式 / MODE</div>
+                <div class="segmented">
+                  <button id="inpaintModeBtn" class="seg active">auto_fix_high 扩散修复</button>
+                  <button id="alphaModeBtn" class="seg">opacity 透明还原</button>
+                </div>
+                <div id="alphaControls" class="alpha-controls hidden">
+                  <label>水印不透明度 <strong><span id="alphaValue">80</span>%</strong></label>
+                  <input id="alphaSlider" type="range" min="1" max="99" value="80" />
+                  <label class="color-row">水印颜色 <input id="colorInput" type="color" value="#ffffff" /></label>
+                </div>
+                <p class="tip" id="modeTip">扩散修复：Telea FMM 算法，适合不透明水印，用周边纹理修复，效果更清晰。</p>
+              </section>
+
+              <section class="block">
+                <div class="section-label">输出格式 / FORMAT</div>
+                <div class="segmented three">
+                  <button data-format="jpeg" class="seg format-btn active">JPG</button>
+                  <button data-format="png" class="seg format-btn">PNG</button>
+                  <button data-format="webp" class="seg format-btn">WEBP</button>
+                </div>
+              </section>
+
+              <section class="block">
+                <div class="section-label">修复操作 / ACTION</div>
+                <button id="runBtn" class="primary-btn" disabled>auto_fix_high 去除水印</button>
+                <button id="downloadBtn" class="outline-btn" disabled>download 下载结果</button>
+                <button id="undoBtn" class="ghost-btn" disabled>undo 撤销</button>
+                <button id="clearMaskBtn" class="ghost-btn" disabled>edit_off 清除标记</button>
+                <div id="status" class="status"></div>
+              </section>
+
+              <section class="block">
+                <div class="section-label">使用说明 / TIPS</div>
+                <div class="tip-list">
+                  <p>① 上传含水印的图片</p>
+                  <p>② 用画笔涂抹标记水印区域</p>
+                  <p>③ 涂多了可用橡皮擦除，或按「撤销」回退</p>
+                  <p>④ 扩散修复：适合不透明水印，服务端 Telea FMM 算法</p>
+                  <p>⑤ 透明还原：适合半透明水印，设置颜色+透明度后本地即时处理</p>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <div class="marquee-wrap">
+            <div class="marquee-track">支持多种图像格式 // 批量处理更高效 // 无需安装 即开即用 // 本地处理更安全 // 持续优化中 // QQ群组:600631814</div>
+            <div class="marquee-track">支持多种图像格式 // 批量处理更高效 // 无需安装 即开即用 // 本地处理更安全 // 持续优化中 // QQ群组:600631814</div>
+          </div>
+        </section>
+
+        <aside class="side rail-right">
+          <button class="rail-item muted"><span>grid_on</span><em>图片分割.exe</em></button>
+          <button class="rail-item muted"><span>water_drop</span><em>添加水印.exe</em></button>
+          <button class="rail-item active"><span>auto_fix_high</span><em>去除水印.exe</em></button>
+          <button class="rail-item muted"><span>forum</span><em>交流社区.exe</em></button>
+          <button class="rail-item muted"><span>link</span><em>友情链接.exe</em></button>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
