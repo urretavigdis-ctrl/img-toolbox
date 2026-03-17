@@ -25,11 +25,17 @@ const MIME_BY_FORMAT = {
   png: 'image/png',
   webp: 'image/webp',
 };
+const PYTHON_TIMEOUT_MS = Number(process.env.INPAINT_TIMEOUT_MS || 60_000);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, algo: 'telea', python: 'required' });
+app.get('/api/health', async (_req, res) => {
+  try {
+    const pythonBin = await resolvePythonBin();
+    res.json({ ok: true, algo: 'telea', python: pythonBin });
+  } catch (error) {
+    res.status(500).json({ ok: false, algo: 'telea', error: error?.message || 'python unavailable' });
+  }
 });
 
 app.post('/api/inpaint', upload.fields([
@@ -44,13 +50,17 @@ app.post('/api/inpaint', upload.fields([
     return res.status(400).json({ error: 'image and mask are required' });
   }
 
+  if (!looksLikeImage(image) || !looksLikeImage(mask)) {
+    return res.status(400).json({ error: 'image and mask must be valid image files (jpg/jpeg/png/webp)' });
+  }
+
   if (!format) {
-    return res.status(400).json({ error: 'format must be one of: jpeg, png, webp' });
+    return res.status(400).json({ error: 'format must be one of: jpg, jpeg, png, webp' });
   }
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imgexe-inpaint-'));
   const inputPath = path.join(tempDir, `input${pickExtension(image.mimetype, image.originalname)}`);
-  const maskPath = path.join(tempDir, 'mask.png');
+  const maskPath = path.join(tempDir, `mask${pickExtension(mask.mimetype, mask.originalname) || '.png'}`);
   const outputPath = path.join(tempDir, `output.${format === 'jpg' ? 'jpeg' : format}`);
 
   try {
@@ -64,24 +74,26 @@ app.post('/api/inpaint', upload.fields([
       '--mask', maskPath,
       '--output', outputPath,
       '--format', format,
-    ]);
+    ], { timeoutMs: PYTHON_TIMEOUT_MS });
 
     if (py.code !== 0) {
-      const stderr = (py.stderr || '').trim() || 'inpaint failed';
-      const dependencyHint = /No module named 'cv2'|No module named cv2|ModuleNotFoundError: .*cv2/.test(stderr)
-        ? ' Python 缺少 OpenCV。请按 README 用项目 venv 安装依赖。'
-        : '';
-      return res.status(500).json({ error: `${stderr}${dependencyHint}`.trim() });
+      return res.status(500).json({
+        error: formatPythonError(py.stderr || py.stdout || 'inpaint failed'),
+      });
     }
 
-    const out = await fs.readFile(outputPath);
+    let out;
+    try {
+      out = await fs.readFile(outputPath);
+    } catch {
+      return res.status(500).json({ error: 'inpaint finished but output file was not created' });
+    }
+
     res.setHeader('Content-Type', MIME_BY_FORMAT[format]);
     res.setHeader('X-Inpaint-Algo', 'telea');
     res.send(out);
   } catch (error) {
-    const message = error?.message || 'server error';
-    const status = /Python runtime not found/.test(message) ? 500 : 500;
-    res.status(status).json({ error: message });
+    res.status(500).json({ error: formatServerError(error) });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -89,7 +101,10 @@ app.post('/api/inpaint', upload.fields([
 
 app.use((err, _req, res, _next) => {
   if (err instanceof multer.MulterError) {
-    return res.status(400).json({ error: err.message });
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? '上传文件过大：单个文件不能超过 25MB'
+      : err.message;
+    return res.status(400).json({ error: message });
   }
   res.status(500).json({ error: err?.message || 'server error' });
 });
@@ -104,6 +119,12 @@ function normalizeFormat(value) {
     return null;
   }
   return format;
+}
+
+function looksLikeImage(file) {
+  const mime = String(file?.mimetype || '').toLowerCase();
+  const ext = path.extname(file?.originalname || '').toLowerCase();
+  return mime.startsWith('image/') || SUPPORTED_FORMATS.has(ext.replace(/^\./, ''));
 }
 
 function pickExtension(mimeType = '', originalname = '') {
@@ -142,10 +163,11 @@ async function resolvePythonBin() {
   throw new Error([
     'Python runtime not found for /api/inpaint.',
     '建议在项目目录创建独立虚拟环境：',
-    'python3 -m venv .venv',
+    'python3.11 -m venv .venv',
     'source .venv/bin/activate',
     'python -m pip install -U pip',
     'python -m pip install -r requirements.txt',
+    '也可以用 INPAINT_PYTHON=/absolute/path/to/python npm start 指定解释器。',
   ].join(' '));
 }
 
@@ -159,21 +181,80 @@ async function canRun(candidate) {
     }
   }
 
-  const result = await runPython(candidate, ['--version']).catch(() => null);
+  const result = await runPython(candidate, ['--version'], { timeoutMs: 10_000 }).catch(() => null);
   return Boolean(result && result.code === 0);
 }
 
-function runPython(pythonBin, args) {
+function runPython(pythonBin, args, { timeoutMs = PYTHON_TIMEOUT_MS } = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(pythonBin, args, { cwd: __dirname });
     let stdout = '';
     let stderr = '';
+    let finished = false;
+
+    const timer = setTimeout(() => {
+      if (finished) return;
+      child.kill('SIGTERM');
+      reject(new Error(`Python inpaint timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
 
     child.stdout.on('data', (d) => { stdout += d.toString(); });
     child.stderr.on('data', (d) => { stderr += d.toString(); });
     child.on('error', (error) => {
+      finished = true;
+      clearTimeout(timer);
       reject(new Error(`failed to start python (${pythonBin}): ${error.message}`));
     });
-    child.on('close', (code) => resolve({ code, stdout, stderr }));
+    child.on('close', (code) => {
+      finished = true;
+      clearTimeout(timer);
+      resolve({ code, stdout, stderr });
+    });
   });
+}
+
+function formatPythonError(raw) {
+  const text = String(raw || '').trim();
+  const singleLine = text.replace(/\s+/g, ' ').trim();
+
+  if (!singleLine) {
+    return 'Python inpaint failed with empty error output';
+  }
+
+  if (/No module named 'cv2'|No module named cv2|ModuleNotFoundError: .*cv2|missing python dependency: opencv-python-headless/i.test(singleLine)) {
+    return `${singleLine}。请进入项目目录创建 .venv 并执行: python -m pip install -r requirements.txt`;
+  }
+
+  if (/mask is empty after thresholding/i.test(singleLine)) {
+    return 'mask 为空或阈值化后没有白色区域；请确认蒙版里白色部分就是要去除的水印区域';
+  }
+
+  if (/failed to read input image|input image not found/i.test(singleLine)) {
+    return '服务端读取原图失败；请确认上传的是可正常打开的图片文件';
+  }
+
+  if (/failed to read mask image|mask image not found/i.test(singleLine)) {
+    return '服务端读取蒙版失败；请确认上传的是可正常打开的蒙版图片';
+  }
+
+  if (/unsupported format/i.test(singleLine)) {
+    return '输出格式不支持；仅支持 jpg / jpeg / png / webp';
+  }
+
+  if (/timed out/i.test(singleLine)) {
+    return `Telea 修复超时（>${PYTHON_TIMEOUT_MS}ms）；可稍后重试，或减小图片尺寸/蒙版面积`;
+  }
+
+  return singleLine;
+}
+
+function formatServerError(error) {
+  const message = String(error?.message || 'server error').trim();
+  if (/Python runtime not found/.test(message)) {
+    return message;
+  }
+  if (/timed out/i.test(message)) {
+    return `Telea 修复超时（>${PYTHON_TIMEOUT_MS}ms）；可稍后重试，或减小图片尺寸/蒙版面积`;
+  }
+  return message;
 }
