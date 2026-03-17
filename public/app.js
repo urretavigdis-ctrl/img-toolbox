@@ -96,6 +96,17 @@ function boot() {
   setStatus('等待上传图片。支持点击、拖拽、粘贴。', 'idle');
 }
 
+function scheduleRelayout(frames = 2) {
+  const run = () => {
+    relayoutCanvases();
+    if (frames > 1) {
+      frames -= 1;
+      window.requestAnimationFrame(run);
+    }
+  };
+  window.requestAnimationFrame(run);
+}
+
 function bindEvents() {
   const openPicker = () => els.fileInput.click();
   els.openFileBtn.addEventListener('click', openPicker);
@@ -300,6 +311,7 @@ async function loadFile(file) {
 
     els.workspace.classList.remove('hidden');
     els.dropInner.classList.add('hidden');
+    scheduleRelayout(3);
     els.imageMeta.textContent = `${bitmap.width} × ${bitmap.height}`;
     els.previewHint.textContent = '处理后结果会实时显示在右侧';
     els.emptyResult.classList.remove('hidden');
@@ -503,6 +515,7 @@ function syncViewModeUi() {
   els.viewerTabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.view === state.viewMode));
   els.viewerCards.forEach((card) => card.classList.toggle('active', card.dataset.pane === state.viewMode));
   els.togglePreviewBtn.textContent = state.viewMode === 'edit' ? '◐ 显示结果' : '◧ 返回编辑';
+  if (state.imageLoaded) scheduleRelayout(2);
 }
 
 async function runRemoval() {
