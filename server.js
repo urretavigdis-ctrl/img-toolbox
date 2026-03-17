@@ -26,7 +26,12 @@ const MIME_BY_FORMAT = {
   webp: 'image/webp',
 };
 const PYTHON_TIMEOUT_MS = Number(process.env.INPAINT_TIMEOUT_MS || 60_000);
+const DEFAULT_CORS_METHODS = ['GET', 'POST', 'OPTIONS'];
+const DEFAULT_CORS_HEADERS = ['Content-Type'];
+const DEFAULT_CORS_EXPOSE_HEADERS = ['X-Inpaint-Algo', 'Content-Type'];
 
+app.use(corsMiddleware);
+app.options('*', corsPreflightHandler);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', async (_req, res) => {
@@ -90,6 +95,7 @@ app.post('/api/inpaint', upload.fields([
     }
 
     res.setHeader('Content-Type', MIME_BY_FORMAT[format]);
+    res.setHeader('Cache-Control', 'no-store');
     res.setHeader('X-Inpaint-Algo', 'telea');
     res.send(out);
   } catch (error) {
@@ -138,6 +144,102 @@ function pickExtension(mimeType = '', originalname = '') {
     return ext;
   }
   return '.img';
+}
+
+function corsMiddleware(req, res, next) {
+  applyCorsHeaders(req, res);
+  next();
+}
+
+function corsPreflightHandler(req, res) {
+  applyCorsHeaders(req, res);
+  res.status(204).end();
+}
+
+function applyCorsHeaders(req, res) {
+  const cors = resolveCorsPolicy(req);
+  if (!cors.allowOrigin) return;
+
+  res.setHeader('Access-Control-Allow-Origin', cors.allowOrigin);
+  res.setHeader('Vary', appendVary(res.getHeader('Vary'), 'Origin'));
+  res.setHeader('Access-Control-Allow-Methods', cors.allowMethods.join(', '));
+  res.setHeader('Access-Control-Allow-Headers', cors.allowHeaders.join(', '));
+  res.setHeader('Access-Control-Expose-Headers', cors.exposeHeaders.join(', '));
+  res.setHeader('Access-Control-Max-Age', String(cors.maxAge));
+}
+
+function resolveCorsPolicy(req) {
+  const origin = String(req.headers.origin || '').trim();
+  const allowedOrigins = parseCsv(process.env.CORS_ALLOW_ORIGINS);
+  const allowedHeaders = parseCsv(process.env.CORS_ALLOW_HEADERS, DEFAULT_CORS_HEADERS);
+  const allowedMethods = parseCsv(process.env.CORS_ALLOW_METHODS, DEFAULT_CORS_METHODS);
+  const exposeHeaders = parseCsv(process.env.CORS_EXPOSE_HEADERS, DEFAULT_CORS_EXPOSE_HEADERS);
+  const maxAge = Number(process.env.CORS_MAX_AGE || 86400);
+
+  if (!origin) {
+    return {
+      allowOrigin: '*',
+      allowHeaders: mergeValues(allowedHeaders, requestedHeaders(req)),
+      allowMethods: allowedMethods,
+      exposeHeaders,
+      maxAge,
+    };
+  }
+
+  if (!allowedOrigins.length || allowedOrigins.includes('*')) {
+    return {
+      allowOrigin: '*',
+      allowHeaders: mergeValues(allowedHeaders, requestedHeaders(req)),
+      allowMethods: allowedMethods,
+      exposeHeaders,
+      maxAge,
+    };
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return {
+      allowOrigin: origin,
+      allowHeaders: mergeValues(allowedHeaders, requestedHeaders(req)),
+      allowMethods: allowedMethods,
+      exposeHeaders,
+      maxAge,
+    };
+  }
+
+  return {
+    allowOrigin: '',
+    allowHeaders: allowedHeaders,
+    allowMethods: allowedMethods,
+    exposeHeaders,
+    maxAge,
+  };
+}
+
+function requestedHeaders(req) {
+  return parseCsv(req.headers['access-control-request-headers']);
+}
+
+function parseCsv(value, fallback = []) {
+  const items = String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  if (items.length) return items;
+  return [...fallback];
+}
+
+function mergeValues(base = [], extra = []) {
+  return [...new Set([...base, ...extra])];
+}
+
+function appendVary(current, value) {
+  const items = String(current || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (!items.includes(value)) items.push(value);
+  return items.join(', ');
 }
 
 async function resolvePythonBin() {

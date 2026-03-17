@@ -2,8 +2,8 @@
 
 这个项目现在按 **前后端分离** 方式部署：
 
-- **前端（Vercel）**：静态页面，目录为 `img-toolbox-app/public/`
-- **后端（Render）**：Node API + Python/OpenCV，目录为 `img-toolbox-app/`
+- **前端（Vercel）**：静态页面，输出目录为 `public/`
+- **后端（Render）**：Node API + Python/OpenCV
 
 核心路线不变：
 - 前端负责上传、画遮罩、透明还原
@@ -11,22 +11,51 @@
 
 ---
 
+## 0. 先统一一个前提
+
+当前 **Git 仓库根目录就是本项目目录本身**。
+
+所以部署平台里不要再把这些路径写成：
+- `img-toolbox-app/public`
+- `img-toolbox-app/render.yaml`
+- Root Directory = `img-toolbox-app`
+
+这些写法都是旧路径残留，导入当前仓库时会把平台带到一个不存在的嵌套目录。
+
+你应该按下面理解：
+
+```text
+repo-root/
+├─ public/
+├─ scripts/
+├─ package.json
+├─ requirements.txt
+├─ server.js
+├─ telea_inpaint.py
+├─ render.yaml
+└─ vercel.json
+```
+
+---
+
 ## 1. 目录职责
 
 ```text
-img-toolbox-app/
-├─ public/                # 前端静态资源（部署到 Vercel）
+repo-root/
+├─ public/                 # 前端静态资源（部署到 Vercel）
 │  ├─ index.html
 │  ├─ app.js
 │  ├─ styles.css
-│  └─ runtime-config.js   # 运行时 API Base URL 配置
+│  └─ runtime-config.js    # 运行时 API Base URL 配置
 ├─ scripts/
-│  └─ prepare-frontend.mjs # 用环境变量生成 runtime-config.js
-├─ server.js              # Node API 服务
-├─ telea_inpaint.py       # Python/OpenCV Telea 修复脚本
-├─ requirements.txt       # Python 依赖
-├─ package.json           # Node 依赖
-└─ render.yaml            # Render Blueprint 示例
+│  ├─ prepare-frontend.mjs
+│  └─ verify-runtime-config.mjs
+├─ server.js               # Node API 服务
+├─ telea_inpaint.py        # Python/OpenCV Telea 修复脚本
+├─ requirements.txt        # Python 依赖
+├─ package.json            # Node 依赖
+├─ render.yaml             # Render Blueprint 示例
+└─ vercel.json             # Vercel 构建配置
 ```
 
 ---
@@ -35,14 +64,16 @@ img-toolbox-app/
 
 ### 前端（Vercel）
 
-前端唯一关键变量：
+关键变量：
 
 - `IMGEXE_API_BASE_URL`
   - 用途：告诉浏览器后端 API 的公网地址
-  - 示例：`https://imgexe-watermark-api.onrender.com`
-  - 留空：表示使用同源 `/api/...`，适合本地用 Node 直接托管前端时
+  - 示例：`https://your-render-service.onrender.com`
+  - 值要求：只填 **源站 origin**，不要带 `/api/inpaint`
+  - 正确：`https://your-render-service.onrender.com`
+  - 错误：`https://your-render-service.onrender.com/api/inpaint`
 
-前端不会直接在浏览器里读取 Vercel env，而是通过构建前执行：
+前端不会直接在浏览器里读取 Vercel env，而是构建前执行：
 
 ```bash
 npm run prepare:frontend
@@ -54,7 +85,15 @@ npm run prepare:frontend
 
 浏览器启动时再从这个文件读取 `apiBaseUrl`。
 
-仓库里也已提供一个默认的 `public/runtime-config.js`（空字符串 = 同源 `/api`），所以本地跑 `npm start` 时不会因为缺文件而报 404。
+### 运行时配置兜底逻辑
+
+- 本地一体运行：`IMGEXE_API_BASE_URL` 可留空，前端自动走同源 `/api/inpaint`
+- Vercel 生产构建：若 `IMGEXE_API_BASE_URL` 为空，构建会直接失败，避免再次生成“空 apiBaseUrl”的坏包
+- 如果你想在别的 CI 环境也强制校验，可额外设置：
+
+```text
+IMGEXE_STRICT_RUNTIME_CONFIG=true
+```
 
 ### 后端（Render）
 
@@ -63,6 +102,7 @@ npm run prepare:frontend
 - `NODE_ENV=production`
 - `PORT`：Render 会自动注入
 - `INPAINT_TIMEOUT_MS=60000`
+- `CORS_ALLOW_ORIGINS=https://你的-vercel-域名`
 - `INPAINT_PYTHON`：可选；若你想强制指定 Python 路径再设置
 
 目前后端默认会自动寻找：
@@ -74,10 +114,9 @@ npm run prepare:frontend
 
 ## 3. 本地联调方式
 
-在后端目录启动 API：
+在仓库根目录执行：
 
 ```bash
-cd img-toolbox-app
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
@@ -86,14 +125,6 @@ npm install
 npm start
 ```
 
-> 如果部署到 Vercel，仓库根目录下的 `vercel.json` 会强制执行：
->
-> ```bash
-> npm run prepare:frontend
-> ```
->
-> 并把 `public/` 作为输出目录，因此 `IMGEXE_API_BASE_URL` 必须在 Vercel 项目环境变量里配置好。
-
 默认后端地址：
 
 - `http://localhost:3100`
@@ -101,8 +132,8 @@ npm start
 如果你想模拟前后端分离的前端配置：
 
 ```bash
-cd img-toolbox-app
 IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
+node scripts/verify-runtime-config.mjs
 ```
 
 然后直接打开 `public/index.html`，或把 `public/` 放到任意静态服务器中测试。
@@ -115,12 +146,12 @@ IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
 
 在 Render 控制台创建一个 **Web Service**，配置建议如下：
 
-- **Root Directory**: 留空（仓库根目录）
+- **Root Directory**: 留空
 - **Runtime**: `Node`
 - **Build Command**:
 
 ```bash
-npm install
+npm ci
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
@@ -144,6 +175,7 @@ npm start
 ```text
 NODE_ENV=production
 INPAINT_TIMEOUT_MS=60000
+CORS_ALLOW_ORIGINS=https://your-vercel-project.vercel.app
 ```
 
 ### 验证方式
@@ -151,7 +183,7 @@ INPAINT_TIMEOUT_MS=60000
 部署完成后先测：
 
 ```bash
-curl https://你的-render-域名.onrender.com/api/health
+curl https://your-render-service.onrender.com/api/health
 ```
 
 期望返回：
@@ -169,26 +201,29 @@ curl https://你的-render-域名.onrender.com/api/health
 
 ### Blueprint 文件
 
-仓库里已给了示例：
+仓库里已给出：
 
-- `img-toolbox-app/render.yaml`
+- `render.yaml`
 
-可作为 Render Blueprint 导入参考，但如果控制台 UI 更顺手，直接照上面的参数填也行。
+可直接作为 Render Blueprint 参考。当前版本已经移除了旧的嵌套 `rootDir` 残留。
 
 ---
 
 ## 5. 部署前端到 Vercel
 
-### 推荐方式
-
 前端是纯静态站点，建议在 Vercel 中：
 
-- **Root Directory**: 留空（仓库根目录）
+- **Root Directory**: 留空
 - **Framework Preset**: `Other`
+- **Install Command**:
+
+```bash
+npm ci
+```
+
 - **Build Command**:
 
 ```bash
-npm install
 npm run prepare:frontend
 ```
 
@@ -203,8 +238,10 @@ public
 在 Vercel 项目里添加：
 
 ```text
-IMGEXE_API_BASE_URL=https://你的-render-域名.onrender.com
+IMGEXE_API_BASE_URL=https://your-render-service.onrender.com
 ```
+
+> 只填域名 origin，不要带 `/api/inpaint`。
 
 ### 部署顺序
 
@@ -227,7 +264,7 @@ IMGEXE_API_BASE_URL=https://你的-render-域名.onrender.com
 也就是说：
 
 - **本地一体运行**：不用配，直接走同源
-- **Vercel + Render 分离部署**：把 `apiBaseUrl` 指向 Render 域名
+- **Vercel + Render 分离部署**：把 `apiBaseUrl` 指向 Render 域名 origin
 
 这样做的好处：
 
@@ -242,21 +279,57 @@ IMGEXE_API_BASE_URL=https://你的-render-域名.onrender.com
 
 ### 后端 Render
 
-- [ ] `npm install` 成功
+- [ ] `npm ci` 成功
 - [ ] `pip install -r requirements.txt` 成功
 - [ ] `/api/health` 返回 `ok: true`
 - [ ] 上传一张图和 mask 后 `/api/inpaint` 能返回二进制结果
 
 ### 前端 Vercel
 
-- [ ] `IMGEXE_API_BASE_URL` 已指向正确 Render 域名
+- [ ] `IMGEXE_API_BASE_URL` 已指向正确 Render 域名 origin
+- [ ] `npm run prepare:frontend` 成功
+- [ ] `node scripts/verify-runtime-config.mjs` 输出正确域名
 - [ ] 页面能正常上传图片
-- [ ] 点击“去除水印”会请求 Render 而不是 Vercel 自身
+- [ ] 点击“去除水印”会请求 Render，而不是 Vercel 自身同源 `/api/inpaint`
 - [ ] 结果可以预览与下载
 
 ---
 
-## 8. 未来若要继续拆分
+## 8. 最小排障手册
+
+### 情况 A：Vercel 页面还能请求到 `/api/inpaint`
+说明前端打包时 `runtime-config.js` 里的 `apiBaseUrl` 仍为空。
+
+排查顺序：
+1. 确认 Vercel 里是否配置了 `IMGEXE_API_BASE_URL`
+2. 确认值是不是 origin，而不是 `/api/inpaint` 全路径
+3. 重新部署 Vercel
+4. 查看构建日志里是否出现：
+   - `[prepare-frontend] wrote ... with apiBaseUrl=https://...`
+5. 如有需要，下载产物或打开站点源码，检查 `runtime-config.js`
+
+### 情况 B：浏览器报跨域
+说明 Render 侧 `CORS_ALLOW_ORIGINS` 没配对。
+
+示例：
+```text
+CORS_ALLOW_ORIGINS=https://your-vercel-project.vercel.app
+```
+
+如果有自定义域名，可逗号分隔多个 origin：
+```text
+CORS_ALLOW_ORIGINS=https://app.example.com,https://your-vercel-project.vercel.app
+```
+
+### 情况 C：Render 健康检查失败
+优先看：
+1. `npm ci` 是否成功
+2. `python -m pip install -r requirements.txt` 是否成功
+3. `curl https://your-render-service.onrender.com/api/health` 返回的错误字段是什么
+
+---
+
+## 9. 未来若要继续拆分
 
 现在这版已经够支撑 Vercel + Render。
 

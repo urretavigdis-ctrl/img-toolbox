@@ -12,31 +12,30 @@
       <div class="ambient ambient-b"></div>
 
       <header class="topbar frame">
-        <div class="brand-left">
-          <div class="brand-mark">
-            <span></span><span></span><span></span>
-          </div>
-          <div>
+        <div class="brand-left topbox">
+          <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
+          <div class="brand-copy">
             <div class="brand-title">imgexe</div>
-            <div class="brand-sub">图像工具箱 / IMGEXE.COM</div>
+            <div class="brand-sub">IMAGE TOOLKIT / WORKSTATION</div>
           </div>
         </div>
 
-        <div class="topbar-center">
+        <div class="topbar-center topbox">
           <div class="masthead-lines"></div>
           <div class="masthead-copy">
-            <strong>图像工具箱</strong>
-            <span>IMGEXE.COM</span>
+            <strong>去除水印.exe</strong>
+            <span>IMGEXE.COM / REMOVE WATERMARK / DESKTOP MODULE</span>
           </div>
           <div class="masthead-lines"></div>
         </div>
 
         <div class="topbar-right">
-          <button id="themeToggle" class="theme-box" type="button" aria-label="切换黑白主题" title="切换黑白主题">
+          <button id="themeToggle" class="theme-box topbox" type="button" aria-label="切换黑白主题" title="切换黑白主题">
             <span class="theme-box__icon" aria-hidden="true">◐</span>
             <span class="theme-box__label">MONO</span>
           </button>
-          <div class="clock-wrap">
+          <div class="clock-wrap topbox">
+            <div class="clock-label">LOCAL TIME</div>
             <div id="clock"></div>
             <div id="date"></div>
           </div>
@@ -44,7 +43,11 @@
       </header>
 
       <main class="layout">
-        <aside class="side rail-left">
+        <aside class="side rail-left frame">
+          <div class="rail-head">
+            <span>TOOLS</span>
+            <strong>MODULE</strong>
+          </div>
           <button class="rail-item muted"><span>▣</span><em>长图拼接.exe</em></button>
           <button class="rail-item muted"><span>▤</span><em>宫格拼图.exe</em></button>
           <button class="rail-item muted"><span>◎</span><em>图片压缩.exe</em></button>
@@ -58,19 +61,25 @@
             <strong>IMGEXE WORKBENCH</strong>
           </div>
 
-          <div class="hero-strip">
+          <section class="hero-strip">
             <div class="hero-copy">
-              <p class="eyebrow">WORKSTATION.EXE / 去除水印编辑器</p>
-              <h1>□ 工作台.EXE / 去除水印编辑器</h1>
+              <p class="eyebrow">REMOVE WATERMARK / DESKTOP WORKFLOW</p>
+              <h1>去除水印编辑器</h1>
+              <p class="hero-note">上传图片、标记水印、执行修复并导出结果。整体流程压成更紧凑的设备化工作台，保持即开即用的工具属性。</p>
             </div>
             <div class="hero-badges">
-              <span>控制面板.SYS</span>
+              <span>CONTROL PANEL</span>
+              <span>LOCAL PREVIEW</span>
             </div>
-          </div>
+          </section>
 
           <div class="editor-grid">
             <section class="canvas-panel frame-sub">
-              <div class="toolbar-strip">
+              <div class="toolbar-strip panel-strip">
+                <div class="strip-label">
+                  <span>WORKSPACE</span>
+                  <strong>编辑区域</strong>
+                </div>
                 <div class="toolbar-left">
                   <button id="openFileBtn" class="toolbar-btn strong">＋ 上传图片</button>
                   <button id="reselectBtn" class="toolbar-btn">↻ 重新选图</button>
@@ -83,9 +92,10 @@
 
               <div id="dropzone" class="dropzone">
                 <div class="drop-inner" id="dropInner">
-                  <div class="drop-badge">IMGEXE</div>
-                  <div class="drop-main">拖拽图片到这里，或点击上传</div>
-                  <div class="drop-sub">支持 JPG / PNG / WEBP · 也支持 Ctrl/Cmd + V 粘贴截图</div>
+                  <div class="drop-gridlines"></div>
+                  <div class="drop-badge">IMGEXE / DROP AREA</div>
+                  <div class="drop-main">拖拽图片到工作台</div>
+                  <div class="drop-sub">支持 JPG / PNG / WEBP，也支持 Ctrl/Cmd + V 粘贴截图。</div>
                   <div class="drop-actions">
                     <button id="dropUploadBtn" class="primary-btn drop-upload">选择图片</button>
                   </div>
@@ -119,7 +129,11 @@
                       </div>
                       <div class="canvas-wrap checkerboard result-wrap" id="resultWrap">
                         <canvas id="resultCanvas"></canvas>
-                        <div id="emptyResult" class="empty-result">等待处理结果</div>
+                        <div id="emptyResult" class="empty-result">
+                          <div class="empty-result__badge">RESULT PANEL</div>
+                          <div class="empty-result__title">等待处理结果</div>
+                          <div class="empty-result__text">执行修复后，这里会显示最新输出图像。</div>
+                        </div>
                       </div>
                     </section>
                   </div>
@@ -128,6 +142,13 @@
             </section>
 
             <aside class="control-panel frame-sub">
+              <div class="control-head panel-strip">
+                <div class="strip-label">
+                  <span>CONTROL</span>
+                  <strong>操作面板</strong>
+                </div>
+              </div>
+
               <section class="block stats-block">
                 <div class="stat-card">
                   <span>状态</span>
@@ -205,21 +226,16 @@
           </div>
 
           <div class="marquee-wrap device-strip">
-            <div class="marquee-track">支持 JPG / PNG / WEBP / 批量处理更高效 / 无需安装 即开即用 / 本地处理更安全 / 持续优化中 /</div>
-            <div class="marquee-track">支持 JPG / PNG / WEBP / 批量处理更高效 / 无需安装 即开即用 / 本地处理更安全 / 持续优化中 /</div>
+            <div class="marquee-track">IMGEXE WORKSTATION / SUPPORT JPG PNG WEBP / LOCAL PREVIEW / DESKTOP-LIKE TOOL FLOW / CONTINUOUS UPDATE /</div>
+            <div class="marquee-track">IMGEXE WORKSTATION / SUPPORT JPG PNG WEBP / LOCAL PREVIEW / DESKTOP-LIKE TOOL FLOW / CONTINUOUS UPDATE /</div>
           </div>
         </section>
 
-        <footer class="footer-bar">
-          <div class="footer-links">
-            <span>隐私政策</span>
-            <span>用户协议</span>
-            <span>联系我们</span>
+        <aside class="side rail-right frame">
+          <div class="rail-head">
+            <span>NAV</span>
+            <strong>ACTIVE</strong>
           </div>
-          <div class="footer-copy">© 2026 图像处理工具箱 · POWERED BY DOINGFB</div>
-        </footer>
-
-        <aside class="side rail-right">
           <button class="rail-item muted"><span>▦</span><em>图片分割.exe</em></button>
           <button class="rail-item muted"><span>◈</span><em>添加水印.exe</em></button>
           <button class="rail-item active"><span>✦</span><em>去除水印.exe</em></button>
@@ -227,6 +243,15 @@
           <button class="rail-item muted"><span>∞</span><em>友情链接.exe</em></button>
         </aside>
       </main>
+
+      <footer class="footer-bar">
+        <div class="footer-links">
+          <span>隐私政策</span>
+          <span>用户协议</span>
+          <span>联系我们</span>
+        </div>
+        <div class="footer-copy">© 2026 IMGEXE TOOLBOX · POWERED BY DOINGFB</div>
+      </footer>
     </div>
 
     <script src="./runtime-config.js"></script>

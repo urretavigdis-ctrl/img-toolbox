@@ -3,9 +3,8 @@ services:
     name: imgexe-watermark-api
     runtime: node
     plan: starter
-    rootDir: 图像工具箱
     buildCommand: |
-      npm install
+      npm ci
       python -m pip install --upgrade pip
       python -m pip install -r requirements.txt
     startCommand: npm start
@@ -15,3 +14,5 @@ services:
         value: production
       - key: INPAINT_TIMEOUT_MS
         value: 60000
+      - key: CORS_ALLOW_ORIGINS
+        sync: false

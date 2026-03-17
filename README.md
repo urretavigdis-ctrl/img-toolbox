@@ -10,7 +10,7 @@
 - 去除模式 2：透明还原（前端本地反向 alpha 混合）
 
 ## 部署架构
-当前推荐部署方式已经整理为：
+当前推荐部署方式：
 
 - **Vercel**：部署前端静态页面（`public/`）
 - **Render**：部署 Node + Python 后端（`/api/inpaint`）
@@ -25,19 +25,32 @@
 - `public/`：前端静态页面资源
 - `public/runtime-config.js`：前端运行时配置，主要用于 API Base URL
 - `scripts/prepare-frontend.mjs`：根据 `IMGEXE_API_BASE_URL` 生成前端运行时配置
+- `scripts/verify-runtime-config.mjs`：检查最终写入的 API Base URL
 - `server.js`：Node 服务，提供 `/api/inpaint` 和 `/api/health`
 - `telea_inpaint.py`：Python/OpenCV 的 Telea 修复脚本
 - `requirements.txt`：Python 依赖
 - `package.json`：Node 依赖与脚本
 - `render.yaml`：Render Blueprint 示例
-- `vercel.json`：Vercel 构建配置（会执行 `npm run prepare:frontend`）
+- `vercel.json`：Vercel 构建配置
 - `example/`：本地 smoke test 示例输入
+
+## 仓库根目录约定（重要）
+当前 **Git 仓库根目录就是本目录本身**，不是上一级 workspace。
+
+也就是说：
+- Render 不要再填 `img-toolbox-app` 作为 Root Directory
+- Vercel 也不要再把 Root Directory 指到一个不存在的嵌套子目录
+- `render.yaml` / `vercel.json` / `package.json` / `requirements.txt` 都在当前仓库根目录
+
+如果你是在 GitHub 上直接导入这个仓库，平台看到的根目录就是这里。
 
 ## 前后端分离约定
 ### 前端
 - 入口目录：`public/`
 - 默认 API：同源 `/api/inpaint`
 - 若设置 `IMGEXE_API_BASE_URL`，前端会改为请求 `${IMGEXE_API_BASE_URL}/api/inpaint`
+- Vercel 构建时会执行 `npm run prepare:frontend`，把 `IMGEXE_API_BASE_URL` 写入 `public/runtime-config.js`
+- 当 `VERCEL=1` 且 `VERCEL_ENV=production` 时，如果没提供 `IMGEXE_API_BASE_URL`，构建会直接失败，避免再次产出“apiBaseUrl 为空”的坏包
 
 ### 后端
 - 继续沿用当前接口：`POST /api/inpaint`
@@ -45,6 +58,8 @@
   - `image`
   - `mask`
   - `format`
+- 已内置跨域支持：`OPTIONS /api/inpaint` 预检、`Access-Control-Allow-Origin`、`Access-Control-Allow-Headers`、`Access-Control-Expose-Headers`
+- 如需限制来源，可在 Render 配置：`CORS_ALLOW_ORIGINS=https://你的前端域名`
 
 这样可以在**不改核心方法路线**的前提下，把前端挂 Vercel、后端挂 Render。
 
@@ -78,13 +93,11 @@
 
 ### 1) 安装 Node 依赖
 ```bash
-cd img-toolbox-app
 npm install
 ```
 
 ### 2) 创建并启用 Python 虚拟环境
 ```bash
-cd img-toolbox-app
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
@@ -102,19 +115,21 @@ npm start
 
 ```bash
 npm run prepare:frontend
-# 或：IMGEXE_API_BASE_URL=https://your-api.example.com npm run prepare:frontend
+# 或：IMGEXE_API_BASE_URL=https://your-render-service.onrender.com npm run prepare:frontend
+node scripts/verify-runtime-config.mjs
 ```
 
 ### 4) 若要模拟分离部署，生成前端 API 配置
 ```bash
 IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
+node scripts/verify-runtime-config.mjs
 ```
 
 ## Python 选择逻辑
 `server.js` 会按下面顺序找 Python：
 1. `INPAINT_PYTHON` 环境变量
-2. `img-toolbox-app/.venv/bin/python`
-3. `img-toolbox-app/.venv/bin/python3`
+2. `.venv/bin/python`
+3. `.venv/bin/python3`
 4. 当前工作目录下的 `.venv/bin/python`
 5. `python3.12`
 6. `python3.11`
@@ -133,7 +148,6 @@ INPAINT_PYTHON=/absolute/path/to/python npm start
 
 ### 验证 1：先单独跑 Python 脚本
 ```bash
-cd img-toolbox-app
 source .venv/bin/activate
 python telea_inpaint.py \
   --input /absolute/path/to/input.png \
@@ -156,34 +170,21 @@ curl -X POST http://localhost:3100/api/inpaint \
 curl http://localhost:3100/api/health
 ```
 
+### 验证 4：检查前端打包后的 API Base URL
+```bash
+node scripts/verify-runtime-config.mjs
+```
+
 当前实现成功时会返回类似：
 ```json
 {"ok":true,"algo":"telea","python":"/absolute/path/to/python"}
 ```
-
-## 关键实现细节
-- 后端算法：`cv2.inpaint(..., cv2.INPAINT_TELEA)`
-- Python 脚本当前会校验：
-  - 输入图是否可读
-  - mask 是否可读
-  - format 是否支持
-  - 阈值化后 mask 是否为空
-- 输入若带 alpha：
-  - 修复在 RGB/BGR 通道完成
-  - 若导出为 `png`，会保留原图 alpha 通道
-- mask 会按灰度读取并二值化；若尺寸不一致，会先按最近邻缩放到原图尺寸
-- Node 侧当前会处理：
-  - `image` / `mask` 缺失
-  - Python 启动失败
-  - 常见依赖缺失（如 `cv2`）报错提示
-  - Multer 上传大小限制（单次最多 25MB）
 
 ## 常见报错与处理
 
 ### 1) `No module named 'cv2'`
 说明服务实际调用的 Python 环境里没装 OpenCV：
 ```bash
-cd 图像工具箱
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip

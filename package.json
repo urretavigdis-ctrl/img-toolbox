@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "prepare:frontend": "node scripts/prepare-frontend.mjs"
+    "prepare:frontend": "node scripts/prepare-frontend.mjs",
+    "verify:runtime-config": "node scripts/verify-runtime-config.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -1,4 +1,5 @@
 {
+  "installCommand": "npm ci",
   "buildCommand": "npm run prepare:frontend",
   "outputDirectory": "public"
 }
