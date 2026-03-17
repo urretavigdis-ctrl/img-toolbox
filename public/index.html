@@ -63,13 +63,13 @@
 
           <section class="hero-strip">
             <div class="hero-copy">
-              <p class="eyebrow">REMOVE WATERMARK / SINGLE CANVAS FLOW</p>
-              <h1>去除水印编辑器</h1>
-              <p class="hero-note">工作区收紧为单主画布：默认直接看处理结果，需要核对时按住 Compare 临时查看原图，松开立即回到结果。流程保持接近参考站：上传 → 标记 → 修复 → 按住对比 → 导出。</p>
+              <p class="eyebrow">REMOVE WATERMARK / SINGLE CANVAS</p>
+              <h1>去除水印</h1>
+              <p class="hero-note">默认显示处理结果；需要核对时按住 Compare 查看原图。流程：上传 → 标记 → 修复 → 对比 → 导出。</p>
             </div>
             <div class="hero-badges">
-              <span>PRIMARY RESULT VIEW</span>
-              <span>HOLD TO COMPARE</span>
+              <span>RESULT</span>
+              <span>HOLD COMPARE</span>
             </div>
           </section>
 
@@ -133,9 +133,9 @@
 
             <aside class="control-panel frame-sub">
               <div class="control-head panel-strip">
-                <div class="strip-label">
-                  <span>CONTROL</span>
-                  <strong>操作面板</strong>
+                <div class="strip-label strip-label--quiet">
+                  <span>PANEL</span>
+                  <strong>控制</strong>
                 </div>
               </div>
 
@@ -155,13 +155,13 @@
               </section>
 
               <section class="block compare-block">
-                <div class="section-label">对比检查 / COMPARE</div>
-                <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住查看原图</span></button>
-                <p class="tip">默认展示处理后结果。鼠标按住或触摸按住时，主画布临时切换为原图；松开立即恢复结果。</p>
+                <div class="section-label">对比</div>
+                <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住看原图</span></button>
+                <p class="tip">按住看原图，松开回结果。</p>
               </section>
 
               <section class="block">
-                <div class="section-label">画笔设置 / BRUSH</div>
+                <div class="section-label">画笔</div>
                 <div class="range-row">
                   <div>画笔大小</div>
                   <strong><span id="brushValue">30</span> px</strong>
@@ -175,7 +175,7 @@
               </section>
 
               <section class="block">
-                <div class="section-label">去除模式 / MODE</div>
+                <div class="section-label">模式</div>
                 <div class="segmented">
                   <button id="inpaintModeBtn" class="seg active">扩散修复</button>
                   <button id="alphaModeBtn" class="seg">透明还原</button>
@@ -193,7 +193,7 @@
               </section>
 
               <section class="block">
-                <div class="section-label">输出格式 / FORMAT</div>
+                <div class="section-label">格式</div>
                 <div class="segmented three">
                   <button data-format="jpeg" class="seg format-btn active">JPG</button>
                   <button data-format="png" class="seg format-btn">PNG</button>
@@ -202,7 +202,7 @@
               </section>
 
               <section class="block action-block">
-                <div class="section-label">修复操作 / ACTION</div>
+                <div class="section-label">操作</div>
                 <button id="runBtn" class="primary-btn" disabled><span class="btn-icon">✦</span><span class="btn-label">去除水印</span></button>
                 <button id="downloadBtn" class="outline-btn" disabled><span class="btn-icon">↓</span><span class="btn-label">下载结果</span></button>
                 <div class="mini-actions">
@@ -212,14 +212,14 @@
                 <div id="status" class="status"></div>
               </section>
 
-              <section class="block">
-                <div class="section-label">快捷说明 / TIPS</div>
+              <section class="block block--tips">
+                <div class="section-label">提示</div>
                 <div class="tip-list compact">
-                  <p>① 上传含水印的图片</p>
-                  <p>② 在主画布上涂抹标记水印区域</p>
-                  <p>③ 扩散修复后结果会直接回到主画布</p>
-                  <p>④ 需要核对时按住「Compare / 按住查看原图」</p>
-                  <p>⑤ 透明还原适合浅色半透明水印，本地即时处理</p>
+                  <p>上传图片</p>
+                  <p>涂抹水印区域</p>
+                  <p>执行修复</p>
+                  <p>按住看原图</p>
+                  <p>透明还原适合浅色半透明水印</p>
                 </div>
               </section>
             </aside>

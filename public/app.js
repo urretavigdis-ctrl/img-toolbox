@@ -531,8 +531,8 @@ function syncToolUi() {
   els.paintModeBtn.classList.toggle('active', isPaint);
   els.eraseModeBtn.classList.toggle('active', !isPaint);
   els.brushTip.textContent = isPaint
-    ? '画笔模式：涂抹需要去除的水印区域。'
-    : '橡皮模式：擦掉误涂区域，适合修边。';
+    ? '涂抹要去除的区域。'
+    : '擦掉误涂，适合修边。';
 }
 
 function syncBrushUi() {
@@ -557,8 +557,8 @@ function syncRemoveModeUi() {
   els.inpaintControls?.classList.toggle('hidden', !isInpaint);
   els.alphaControls.classList.toggle('hidden', isInpaint);
   els.modeTip.textContent = isInpaint
-    ? '扩散修复：适合不透明水印。半径越大，补全更强，但也更容易抹平细节；平滑背景会自动做轻量优化。'
-    : '透明还原：适合浅色半透明水印，按颜色与不透明度做反向混合。';
+    ? '适合不透明水印；半径越大，补全越强。'
+    : '适合浅色半透明水印。';
   els.runBtn.textContent = isInpaint ? '去除水印' : '透明还原';
 }
 
@@ -580,12 +580,12 @@ function syncCompareUi() {
     const icon = btn.querySelector('.btn-icon');
     if (label) {
       label.textContent = state.isComparing
-        ? '松开恢复结果图'
+        ? '松开回结果'
         : btn === els.compareHoldBtn
           ? '按住对比原图'
-          : '按住查看原图';
+          : '按住看原图';
     } else {
-      btn.textContent = state.isComparing ? '松开恢复结果图' : btn === els.compareHoldBtn ? '按住对比原图' : '按住查看原图';
+      btn.textContent = state.isComparing ? '松开回结果' : btn === els.compareHoldBtn ? '按住对比原图' : '按住看原图';
     }
     if (icon) icon.textContent = state.isComparing ? '◨' : '◧';
   });
