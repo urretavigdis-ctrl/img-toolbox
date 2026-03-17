@@ -10,15 +10,16 @@ const els = {
   openFileBtn: document.getElementById('openFileBtn'),
   dropUploadBtn: document.getElementById('dropUploadBtn'),
   reselectBtn: document.getElementById('reselectBtn'),
-  togglePreviewBtn: document.getElementById('togglePreviewBtn'),
+  compareHoldBtn: document.getElementById('compareHoldBtn'),
+  compareHoldBtnPanel: document.getElementById('compareHoldBtnPanel'),
   imageMeta: document.getElementById('imageMeta'),
   previewHint: document.getElementById('previewHint'),
-  emptyResult: document.getElementById('emptyResult'),
+  canvasModeLabel: document.getElementById('canvasModeLabel'),
+  compareHintLabel: document.getElementById('compareHintLabel'),
   mainCanvas: document.getElementById('mainCanvas'),
   maskCanvas: document.getElementById('maskCanvas'),
   resultCanvas: document.getElementById('resultCanvas'),
   editWrap: document.getElementById('editWrap'),
-  resultWrap: document.getElementById('resultWrap'),
   brushCursor: document.getElementById('brushCursor'),
   brushSize: document.getElementById('brushSize'),
   brushValue: document.getElementById('brushValue'),
@@ -44,8 +45,6 @@ const els = {
   themeIcon: document.querySelector('.theme-box__icon'),
   themeLabel: document.querySelector('.theme-box__label'),
   formatBtns: [...document.querySelectorAll('.format-btn')],
-  viewerTabs: [...document.querySelectorAll('.viewer-tab')],
-  viewerCards: [...document.querySelectorAll('.viewer-card')],
 };
 
 const ctx = {
@@ -58,6 +57,7 @@ const THEME_KEY = 'imgexe-theme';
 
 const state = {
   imageLoaded: false,
+  originalBitmap: null,
   currentImageBitmap: null,
   workingBlob: null,
   resultBlob: null,
@@ -68,12 +68,12 @@ const state = {
   removeMode: 'inpaint',
   brushSize: Number(els.brushSize.value),
   isDrawing: false,
+  isComparing: false,
   lastPoint: null,
   undoStack: [],
   maxUndo: 24,
   hasMask: false,
   busy: false,
-  viewMode: 'edit',
   theme: 'dark',
   imageWidth: 0,
   imageHeight: 0,
@@ -91,7 +91,7 @@ function boot() {
   syncBrushUi();
   syncRemoveModeUi();
   syncToolUi();
-  syncViewModeUi();
+  syncCompareUi();
   syncActionState();
   setStatus('等待上传图片。支持点击、拖拽、粘贴。', 'idle');
 }
@@ -161,8 +161,10 @@ function bindEvents() {
   els.eraseModeBtn.addEventListener('click', () => setTool('erase'));
   els.inpaintModeBtn.addEventListener('click', () => setRemoveMode('inpaint'));
   els.alphaModeBtn.addEventListener('click', () => setRemoveMode('alpha'));
-  els.togglePreviewBtn.addEventListener('click', () => toggleViewMode());
   els.themeToggle?.addEventListener('click', toggleTheme);
+
+  bindCompareButton(els.compareHoldBtn);
+  bindCompareButton(els.compareHoldBtnPanel);
 
   els.alphaSlider.addEventListener('input', () => {
     els.alphaValue.textContent = els.alphaSlider.value;
@@ -176,14 +178,12 @@ function bindEvents() {
       if (state.resultBlob) {
         revokeResultUrl();
         state.resultBlob = null;
+        syncCompareUi();
+        renderMainView();
         setStatus('输出格式已切换，请重新执行处理后再下载。', 'idle');
       }
       syncActionState();
     });
-  });
-
-  els.viewerTabs.forEach((tab) => {
-    tab.addEventListener('click', () => setViewMode(tab.dataset.view));
   });
 
   els.undoBtn.addEventListener('click', undoMask);
@@ -194,7 +194,7 @@ function bindEvents() {
   window.addEventListener('resize', relayoutCanvases);
 
   const start = (event) => {
-    if (!state.imageLoaded || state.busy) return;
+    if (!state.imageLoaded || state.busy || state.isComparing) return;
     if (event.button !== undefined && event.button !== 0) return;
     event.preventDefault();
     const point = getCanvasPoint(event);
@@ -226,12 +226,42 @@ function bindEvents() {
   els.maskCanvas.addEventListener('mousemove', move);
   els.maskCanvas.addEventListener('mouseleave', () => els.brushCursor.classList.add('hidden'));
   els.maskCanvas.addEventListener('mouseenter', (event) => updateBrushCursor(getCanvasPoint(event), event));
-  window.addEventListener('mouseup', end);
+  window.addEventListener('mouseup', () => {
+    end();
+    setCompareMode(false);
+  });
 
   els.maskCanvas.addEventListener('touchstart', start, { passive: false });
   els.maskCanvas.addEventListener('touchmove', move, { passive: false });
-  window.addEventListener('touchend', end);
-  window.addEventListener('touchcancel', end);
+  window.addEventListener('touchend', () => {
+    end();
+    setCompareMode(false);
+  });
+  window.addEventListener('touchcancel', () => {
+    end();
+    setCompareMode(false);
+  });
+}
+
+function bindCompareButton(button) {
+  if (!button) return;
+  const startCompare = (event) => {
+    if (button.disabled) return;
+    if (event) event.preventDefault();
+    setCompareMode(true);
+  };
+  const stopCompare = (event) => {
+    if (event) event.preventDefault();
+    setCompareMode(false);
+  };
+
+  button.addEventListener('mousedown', startCompare);
+  button.addEventListener('touchstart', startCompare, { passive: false });
+  button.addEventListener('mouseup', stopCompare);
+  button.addEventListener('mouseleave', stopCompare);
+  button.addEventListener('touchend', stopCompare);
+  button.addEventListener('touchcancel', stopCompare);
+  button.addEventListener('blur', stopCompare);
 }
 
 function initTheme() {
@@ -267,6 +297,11 @@ function handleKeyDown(event) {
     undoMask();
     return;
   }
+  if (event.code === 'Space' && state.resultBlob) {
+    event.preventDefault();
+    setCompareMode(true);
+    return;
+  }
   if (event.key.toLowerCase() === 'b') setTool('paint');
   if (event.key.toLowerCase() === 'e') setTool('erase');
   if (event.key.toLowerCase() === 't') toggleTheme();
@@ -281,6 +316,10 @@ function handleKeyDown(event) {
     syncBrushUi();
   }
 }
+
+window.addEventListener('keyup', (event) => {
+  if (event.code === 'Space') setCompareMode(false);
+});
 
 function updateClock() {
   const now = new Date();
@@ -302,7 +341,9 @@ async function loadFile(file) {
     state.imageLoaded = true;
     state.undoStack = [];
     state.hasMask = false;
+    state.isComparing = false;
     state.resultBlob = null;
+    state.originalBitmap = bitmap;
     revokeResultUrl();
 
     await applyBitmapAsWorkingImage(bitmap);
@@ -313,10 +354,9 @@ async function loadFile(file) {
     els.dropInner.classList.add('hidden');
     scheduleRelayout(3);
     els.imageMeta.textContent = `${bitmap.width} × ${bitmap.height}`;
-    els.previewHint.textContent = '处理后结果会实时显示在右侧';
-    els.emptyResult.classList.remove('hidden');
-    setViewMode('edit');
-    setStatus('图片已载入。请在左侧涂抹要去除的水印区域。', 'success');
+    syncCompareUi();
+    renderMainView();
+    setStatus('图片已载入。请直接在主画布上涂抹要去除的水印区域。', 'success');
   } catch (error) {
     console.error(error);
     setStatus(`载入失败：${error.message || '未知错误'}`, 'error');
@@ -338,18 +378,22 @@ async function applyBitmapAsWorkingImage(bitmap) {
   });
 
   relayoutCanvases();
-
-  ctx.main.clearRect(0, 0, width, height);
-  ctx.main.drawImage(bitmap, 0, 0);
-
-  ctx.result.clearRect(0, 0, width, height);
-  ctx.result.drawImage(bitmap, 0, 0);
-
   ctx.mask.clearRect(0, 0, width, height);
   ctx.mask.lineCap = 'round';
   ctx.mask.lineJoin = 'round';
 
+  drawBitmapToCanvas(ctx.main, state.resultBlob ? state.currentImageBitmap : state.originalBitmap);
+  drawBitmapToCanvas(ctx.result, bitmap);
+
   state.workingBlob = await canvasToBlob(els.mainCanvas, 'image/png');
+}
+
+async function setWorkingImageFromBlob(blob) {
+  const bitmap = await createImageBitmap(blob);
+  state.currentImageBitmap = bitmap;
+  state.imageWidth = bitmap.width;
+  state.imageHeight = bitmap.height;
+  state.workingBlob = blob;
 }
 
 function getCanvasPoint(event) {
@@ -377,7 +421,7 @@ function getCanvasPoint(event) {
 }
 
 function updateBrushCursor(point, event) {
-  if (!state.imageLoaded || !point) {
+  if (!state.imageLoaded || !point || state.isComparing) {
     els.brushCursor.classList.add('hidden');
     return;
   }
@@ -502,20 +546,58 @@ function syncRemoveModeUi() {
   els.runBtn.textContent = isInpaint ? '去除水印' : '透明还原';
 }
 
-function setViewMode(mode) {
-  state.viewMode = mode;
-  syncViewModeUi();
+function setCompareMode(enabled) {
+  const next = Boolean(enabled && state.resultBlob && !state.busy);
+  if (state.isComparing === next) return;
+  state.isComparing = next;
+  renderMainView();
+  syncCompareUi();
 }
 
-function toggleViewMode() {
-  setViewMode(state.viewMode === 'edit' ? 'result' : 'edit');
-}
+function syncCompareUi() {
+  const enabled = Boolean(state.resultBlob && !state.busy);
+  [els.compareHoldBtn, els.compareHoldBtnPanel].forEach((btn) => {
+    if (!btn) return;
+    btn.disabled = !enabled;
+    btn.dataset.active = String(state.isComparing);
+    const label = btn.querySelector('.btn-label');
+    const icon = btn.querySelector('.btn-icon');
+    if (label) {
+      label.textContent = state.isComparing
+        ? '松开恢复结果图'
+        : btn === els.compareHoldBtn
+          ? '按住对比原图'
+          : '按住查看原图';
+    } else {
+      btn.textContent = state.isComparing ? '松开恢复结果图' : btn === els.compareHoldBtn ? '按住对比原图' : '按住查看原图';
+    }
+    if (icon) icon.textContent = state.isComparing ? '◨' : '◧';
+  });
 
-function syncViewModeUi() {
-  els.viewerTabs.forEach((tab) => tab.classList.toggle('active', tab.dataset.view === state.viewMode));
-  els.viewerCards.forEach((card) => card.classList.toggle('active', card.dataset.pane === state.viewMode));
-  els.togglePreviewBtn.textContent = state.viewMode === 'edit' ? '◐ 显示结果' : '◧ 返回编辑';
-  if (state.imageLoaded) scheduleRelayout(2);
+  if (els.canvasModeLabel) {
+    els.canvasModeLabel.textContent = state.isComparing
+      ? 'ORIGINAL'
+      : state.resultBlob
+        ? 'RESULT'
+        : 'ORIGINAL';
+  }
+
+  if (els.compareHintLabel) {
+    els.compareHintLabel.textContent = state.isComparing
+      ? '正在临时查看原图，松开后回到结果图'
+      : state.resultBlob
+        ? '当前为结果视图，可按住 Compare 查看原图'
+        : '当前为原图编辑视图';
+  }
+
+  if (els.previewHint) {
+    els.previewHint.textContent = state.resultBlob
+      ? '修复结果已回到主画布；按住 Compare 可临时查看原图'
+      : '修复后会直接替换到主画布；按住 Compare 可临时查看原图';
+  }
+
+  els.maskCanvas.style.opacity = state.isComparing ? '0' : '1';
+  if (state.isComparing) els.brushCursor.classList.add('hidden');
 }
 
 async function runRemoval() {
@@ -525,16 +607,17 @@ async function runRemoval() {
     setBusy(true);
     revokeResultUrl();
     state.resultBlob = null;
+    syncCompareUi();
 
     let blob;
     if (state.removeMode === 'inpaint') {
       setStatus('正在执行扩散修复，等待服务端处理...', 'working');
       blob = await runInpaint();
-      setStatus('扩散修复完成。你可以继续标记细修，或直接下载。', 'success');
+      setStatus('扩散修复完成。结果已回到主画布，可按住 Compare 检查原图。', 'success');
     } else {
       setStatus('正在执行透明还原，本地处理中...', 'working');
       blob = await runAlphaRestore();
-      setStatus('透明还原完成。你可以继续细修，或直接下载。', 'success');
+      setStatus('透明还原完成。结果已回到主画布，可按住 Compare 检查原图。', 'success');
     }
 
     state.resultBlob = blob;
@@ -542,22 +625,38 @@ async function runRemoval() {
     clearMaskCanvas();
     state.undoStack = [];
     updateMaskState();
-    setViewMode('result');
+    renderMainView();
+    syncCompareUi();
   } catch (error) {
     console.error(error);
     setStatus(`处理失败：${error.message || '未知错误'}`, 'error');
   } finally {
     setBusy(false);
+    syncCompareUi();
   }
 }
 
 async function runInpaint() {
+  const maskInfo = await buildMaskBlob();
   const formData = new FormData();
   formData.append('image', state.workingBlob, 'image.png');
-  formData.append('mask', await buildMaskBlob(), 'mask.png');
+  formData.append('mask', maskInfo.blob, 'mask.png');
   formData.append('format', state.outputFormat);
 
-  const res = await fetch(buildApiUrl('/api/inpaint'), { method: 'POST', body: formData });
+  console.info('[imgexe] inpaint request', {
+    api: buildApiUrl('/api/inpaint'),
+    imageBytes: state.workingBlob?.size || 0,
+    maskBytes: maskInfo.blob.size,
+    maskPixels: maskInfo.nonZeroPixels,
+    maskCoverage: maskInfo.coverage,
+    format: state.outputFormat,
+  });
+
+  const res = await fetch(buildApiUrl('/api/inpaint'), {
+    method: 'POST',
+    body: formData,
+    cache: 'no-store',
+  });
   if (!res.ok) {
     let msg = '服务端修复失败';
     try {
@@ -568,6 +667,14 @@ async function runInpaint() {
     }
     throw new Error(msg);
   }
+
+  const algo = (res.headers.get('X-Inpaint-Algo') || 'telea').trim();
+  console.info('[imgexe] inpaint response', {
+    algo,
+    contentType: res.headers.get('Content-Type'),
+    contentLength: res.headers.get('Content-Length'),
+  });
+
   return await res.blob();
 }
 
@@ -599,65 +706,82 @@ async function runAlphaRestore() {
 
 async function applyResultBlob(blob) {
   const bitmap = await createImageBitmap(blob);
-  ctx.result.clearRect(0, 0, els.resultCanvas.width, els.resultCanvas.height);
-  ctx.result.drawImage(bitmap, 0, 0, els.resultCanvas.width, els.resultCanvas.height);
-  els.emptyResult.classList.add('hidden');
-  els.previewHint.textContent = '当前显示最新处理结果';
-
-  await applyBitmapAsWorkingImage(bitmap);
+  drawBitmapToCanvas(ctx.result, bitmap);
+  await setWorkingImageFromBlob(blob);
 }
 
 async function buildMaskBlob() {
   const temp = createCanvas(els.maskCanvas.width, els.maskCanvas.height);
   const tempCtx = temp.getContext('2d', { willReadFrequently: true });
-  tempCtx.fillStyle = '#000';
-  tempCtx.fillRect(0, 0, temp.width, temp.height);
+  tempCtx.clearRect(0, 0, temp.width, temp.height);
   tempCtx.drawImage(els.maskCanvas, 0, 0);
 
   const imageData = tempCtx.getImageData(0, 0, temp.width, temp.height);
   const d = imageData.data;
+  let nonZeroPixels = 0;
+
   for (let i = 0; i < d.length; i += 4) {
-    const a = d[i + 3];
-    const v = a > 8 ? 255 : 0;
+    const alpha = d[i + 3];
+    const luminance = Math.round((d[i] * 0.299) + (d[i + 1] * 0.587) + (d[i + 2] * 0.114));
+    const marked = alpha > 8 || luminance > 8;
+    const v = marked ? 255 : 0;
+    if (marked) nonZeroPixels += 1;
     d[i] = v;
     d[i + 1] = v;
     d[i + 2] = v;
-    d[i + 3] = 255;
+    d[i + 3] = v;
   }
+
   tempCtx.putImageData(imageData, 0, 0);
-  return await canvasToBlob(temp, 'image/png');
+
+  const blob = await canvasToBlob(temp, 'image/png');
+  return {
+    blob,
+    nonZeroPixels,
+    coverage: Number((nonZeroPixels / Math.max(temp.width * temp.height, 1)).toFixed(4)),
+  };
+}
+
+function renderMainView() {
+  if (!state.imageLoaded) return;
+  const bitmap = state.isComparing
+    ? state.originalBitmap
+    : state.resultBlob
+      ? state.currentImageBitmap
+      : state.originalBitmap;
+  drawBitmapToCanvas(ctx.main, bitmap);
+}
+
+function drawBitmapToCanvas(targetCtx, bitmap) {
+  if (!bitmap) return;
+  targetCtx.clearRect(0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
+  targetCtx.drawImage(bitmap, 0, 0, targetCtx.canvas.width, targetCtx.canvas.height);
 }
 
 function relayoutCanvases() {
   if (!state.imageWidth || !state.imageHeight) return;
 
-  [
-    [els.editWrap, [els.mainCanvas, els.maskCanvas]],
-    [els.resultWrap, [els.resultCanvas]],
-  ].forEach(([wrap, canvases]) => {
-    const width = wrap.clientWidth;
-    const height = wrap.clientHeight;
-    if (!width || !height) return;
+  const wrap = els.editWrap;
+  const width = wrap.clientWidth;
+  const height = wrap.clientHeight;
+  if (!width || !height) return;
 
-    const style = window.getComputedStyle(wrap);
-    const padX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
-    const padY = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0');
-    const availableWidth = Math.max(1, width - padX);
-    const availableHeight = Math.max(1, height - padY);
-    const scale = Math.min(availableWidth / state.imageWidth, availableHeight / state.imageHeight, 1);
-    const displayWidth = Math.max(1, Math.round(state.imageWidth * scale));
-    const displayHeight = Math.max(1, Math.round(state.imageHeight * scale));
+  const style = window.getComputedStyle(wrap);
+  const padX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
+  const padY = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0');
+  const availableWidth = Math.max(1, width - padX);
+  const availableHeight = Math.max(1, height - padY);
+  const scale = Math.min(availableWidth / state.imageWidth, availableHeight / state.imageHeight, 1);
+  const displayWidth = Math.max(1, Math.round(state.imageWidth * scale));
+  const displayHeight = Math.max(1, Math.round(state.imageHeight * scale));
 
-    canvases.forEach((canvas) => {
-      canvas.style.width = `${displayWidth}px`;
-      canvas.style.height = `${displayHeight}px`;
-    });
-
-    if (wrap === els.editWrap) {
-      state.displayWidth = displayWidth;
-      state.displayHeight = displayHeight;
-    }
+  [els.mainCanvas, els.maskCanvas, els.resultCanvas].forEach((canvas) => {
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
   });
+
+  state.displayWidth = displayWidth;
+  state.displayHeight = displayHeight;
 }
 
 function createCanvas(width, height) {
@@ -704,6 +828,7 @@ function syncActionState() {
 
 function setBusy(busy) {
   state.busy = busy;
+  if (busy) state.isComparing = false;
   els.statusLabel.textContent = busy ? '处理中' : '待机中';
   syncActionState();
 }

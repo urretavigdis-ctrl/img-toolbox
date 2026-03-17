@@ -48,11 +48,11 @@
             <span>TOOLS</span>
             <strong>MODULE</strong>
           </div>
-          <button class="rail-item muted"><span>▣</span><em>长图拼接.exe</em></button>
-          <button class="rail-item muted"><span>▤</span><em>宫格拼图.exe</em></button>
-          <button class="rail-item muted"><span>◎</span><em>图片压缩.exe</em></button>
-          <button class="rail-item muted"><span>⇄</span><em>格式转换.exe</em></button>
-          <button class="rail-item muted"><span>✂</span><em>图片裁剪.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">▣</span><em>长图拼接.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">▤</span><em>宫格拼图.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>图片压缩.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">⇄</span><em>格式转换.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">✂</span><em>图片裁剪.exe</em></button>
         </aside>
 
         <section class="workbench frame">
@@ -63,13 +63,13 @@
 
           <section class="hero-strip">
             <div class="hero-copy">
-              <p class="eyebrow">REMOVE WATERMARK / DESKTOP WORKFLOW</p>
+              <p class="eyebrow">REMOVE WATERMARK / SINGLE CANVAS FLOW</p>
               <h1>去除水印编辑器</h1>
-              <p class="hero-note">上传图片、标记水印、执行修复并导出结果。整体流程压成更紧凑的设备化工作台，保持即开即用的工具属性。</p>
+              <p class="hero-note">工作区收紧为单主画布：默认直接看处理结果，需要核对时按住 Compare 临时查看原图，松开立即回到结果。流程保持接近参考站：上传 → 标记 → 修复 → 按住对比 → 导出。</p>
             </div>
             <div class="hero-badges">
-              <span>CONTROL PANEL</span>
-              <span>LOCAL PREVIEW</span>
+              <span>PRIMARY RESULT VIEW</span>
+              <span>HOLD TO COMPARE</span>
             </div>
           </section>
 
@@ -78,12 +78,12 @@
               <div class="toolbar-strip panel-strip">
                 <div class="strip-label">
                   <span>WORKSPACE</span>
-                  <strong>编辑区域</strong>
+                  <strong>单画布工作区</strong>
                 </div>
                 <div class="toolbar-left">
-                  <button id="openFileBtn" class="toolbar-btn strong">＋ 上传图片</button>
-                  <button id="reselectBtn" class="toolbar-btn">↻ 重新选图</button>
-                  <button id="togglePreviewBtn" class="toolbar-btn">◐ 显示结果</button>
+                  <button id="openFileBtn" class="toolbar-btn strong"><span class="btn-icon">＋</span><span class="btn-label">上传图片</span></button>
+                  <button id="reselectBtn" class="toolbar-btn"><span class="btn-icon">↻</span><span class="btn-label">重新选图</span></button>
+                  <button id="compareHoldBtn" class="toolbar-btn compare-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住对比原图</span></button>
                 </div>
                 <div class="toolbar-right">
                   <div class="meta-chip"><span id="imageMeta">未载入图片</span></div>
@@ -97,46 +97,36 @@
                   <div class="drop-main">拖拽图片到工作台</div>
                   <div class="drop-sub">支持 JPG / PNG / WEBP，也支持 Ctrl/Cmd + V 粘贴截图。</div>
                   <div class="drop-actions">
-                    <button id="dropUploadBtn" class="primary-btn drop-upload">选择图片</button>
+                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">选择图片</span></button>
                   </div>
                 </div>
 
                 <input id="fileInput" type="file" accept="image/*" hidden />
 
                 <div id="workspace" class="workspace hidden">
-                  <div class="viewer-tabs">
-                    <button class="viewer-tab active" data-view="edit">编辑视图</button>
-                    <button class="viewer-tab" data-view="result">结果预览</button>
-                  </div>
+                  <section class="viewer-card viewer-card--main viewer-card--single active" data-pane="edit">
+                    <div class="viewer-head viewer-head--main">
+                      <span>PRIMARY CANVAS / 处理结果默认显示</span>
+                      <em id="previewHint">修复后会直接替换到主画布；按住 Compare 可临时查看原图</em>
+                    </div>
 
-                  <div class="viewer-grid">
-                    <section class="viewer-card active" data-pane="edit">
-                      <div class="viewer-head">
-                        <span>原图 / 编辑层</span>
-                        <em>左侧负责标记水印区域</em>
+                    <div class="canvas-stage checkerboard" id="editWrap">
+                      <div class="stage-hud">
+                        <div class="stage-mode">
+                          <span class="stage-mode__label">VIEW</span>
+                          <strong id="canvasModeLabel">ORIGINAL</strong>
+                        </div>
+                        <div class="stage-note" id="compareHintLabel">当前为原图编辑视图</div>
                       </div>
-                      <div class="canvas-wrap checkerboard" id="editWrap">
+
+                      <div class="canvas-wrap canvas-wrap--main">
                         <canvas id="mainCanvas"></canvas>
                         <canvas id="maskCanvas"></canvas>
+                        <canvas id="resultCanvas" aria-hidden="true"></canvas>
                         <div id="brushCursor" class="brush-cursor hidden"></div>
                       </div>
-                    </section>
-
-                    <section class="viewer-card" data-pane="result">
-                      <div class="viewer-head">
-                        <span>修复结果</span>
-                        <em id="previewHint">处理后将在这里预览</em>
-                      </div>
-                      <div class="canvas-wrap checkerboard result-wrap" id="resultWrap">
-                        <canvas id="resultCanvas"></canvas>
-                        <div id="emptyResult" class="empty-result">
-                          <div class="empty-result__badge">RESULT PANEL</div>
-                          <div class="empty-result__title">等待处理结果</div>
-                          <div class="empty-result__text">执行修复后，这里会显示最新输出图像。</div>
-                        </div>
-                      </div>
-                    </section>
-                  </div>
+                    </div>
+                  </section>
                 </div>
               </div>
             </section>
@@ -162,6 +152,12 @@
                   <span>输出</span>
                   <strong id="formatStateLabel">JPG</strong>
                 </div>
+              </section>
+
+              <section class="block compare-block">
+                <div class="section-label">对比检查 / COMPARE</div>
+                <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住查看原图</span></button>
+                <p class="tip">默认展示处理后结果。鼠标按住或触摸按住时，主画布临时切换为原图；松开立即恢复结果。</p>
               </section>
 
               <section class="block">
@@ -203,11 +199,11 @@
 
               <section class="block action-block">
                 <div class="section-label">修复操作 / ACTION</div>
-                <button id="runBtn" class="primary-btn" disabled>去除水印</button>
-                <button id="downloadBtn" class="outline-btn" disabled>下载结果</button>
+                <button id="runBtn" class="primary-btn" disabled><span class="btn-icon">✦</span><span class="btn-label">去除水印</span></button>
+                <button id="downloadBtn" class="outline-btn" disabled><span class="btn-icon">↓</span><span class="btn-label">下载结果</span></button>
                 <div class="mini-actions">
-                  <button id="undoBtn" class="ghost-btn" disabled>撤销</button>
-                  <button id="clearMaskBtn" class="ghost-btn" disabled>清除标记</button>
+                  <button id="undoBtn" class="ghost-btn" disabled><span class="btn-icon">↶</span><span class="btn-label">撤销</span></button>
+                  <button id="clearMaskBtn" class="ghost-btn" disabled><span class="btn-icon">⌫</span><span class="btn-label">清除标记</span></button>
                 </div>
                 <div id="status" class="status"></div>
               </section>
@@ -216,18 +212,18 @@
                 <div class="section-label">快捷说明 / TIPS</div>
                 <div class="tip-list compact">
                   <p>① 上传含水印的图片</p>
-                  <p>② 用画笔涂抹标记水印区域</p>
-                  <p>③ 涂多了可用橡皮擦除，或按「撤销」回退</p>
-                  <p>④ 扩散修复：适合不透明水印，服务端 Telea FMM 算法</p>
-                  <p>⑤ 透明还原：适合半透明水印，设置颜色+透明度后本地即时处理</p>
+                  <p>② 在主画布上涂抹标记水印区域</p>
+                  <p>③ 扩散修复后结果会直接回到主画布</p>
+                  <p>④ 需要核对时按住「Compare / 按住查看原图」</p>
+                  <p>⑤ 透明还原适合浅色半透明水印，本地即时处理</p>
                 </div>
               </section>
             </aside>
           </div>
 
           <div class="marquee-wrap device-strip">
-            <div class="marquee-track">IMGEXE WORKSTATION / SUPPORT JPG PNG WEBP / LOCAL PREVIEW / DESKTOP-LIKE TOOL FLOW / CONTINUOUS UPDATE /</div>
-            <div class="marquee-track">IMGEXE WORKSTATION / SUPPORT JPG PNG WEBP / LOCAL PREVIEW / DESKTOP-LIKE TOOL FLOW / CONTINUOUS UPDATE /</div>
+            <div class="marquee-track">IMGEXE WORKSTATION / SINGLE PRIMARY CANVAS / HOLD TO COMPARE / SUPPORT JPG PNG WEBP / DESKTOP-LIKE TOOL FLOW /</div>
+            <div class="marquee-track">IMGEXE WORKSTATION / SINGLE PRIMARY CANVAS / HOLD TO COMPARE / SUPPORT JPG PNG WEBP / DESKTOP-LIKE TOOL FLOW /</div>
           </div>
         </section>
 
@@ -236,11 +232,11 @@
             <span>NAV</span>
             <strong>ACTIVE</strong>
           </div>
-          <button class="rail-item muted"><span>▦</span><em>图片分割.exe</em></button>
-          <button class="rail-item muted"><span>◈</span><em>添加水印.exe</em></button>
-          <button class="rail-item active"><span>✦</span><em>去除水印.exe</em></button>
-          <button class="rail-item muted"><span>◎</span><em>交流社区.exe</em></button>
-          <button class="rail-item muted"><span>∞</span><em>友情链接.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">▦</span><em>图片分割.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◈</span><em>添加水印.exe</em></button>
+          <button class="rail-item active"><span class="rail-item__icon">✦</span><em>去除水印.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>交流社区.exe</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">∞</span><em>友情链接.exe</em></button>
         </aside>
       </main>
 

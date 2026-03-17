@@ -63,8 +63,11 @@ def read_mask(mask_path: Path):
     if channels == 4:
         alpha = raw[:, :, 3]
         rgb = cv2.cvtColor(raw, cv2.COLOR_BGRA2GRAY)
-        # 优先保留白字/亮区，同时兼容透明底白字蒙版。
-        return np.maximum(rgb, alpha)
+        # 兼容两类前端导出：
+        # 1) 透明底 + 白色前景（alpha 才是真正 mask）
+        # 2) 黑底/白底的灰度导出（rgb 里有前景）
+        # 不能直接对整张图取 maximum(rgb, alpha)，否则不透明黑底会把整张图抬成全白。
+        return np.where(alpha > 8, 255, rgb).astype(np.uint8)
     if channels == 3:
         return cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
 
@@ -130,8 +133,15 @@ def main():
 
     image_bgr, original_alpha = ensure_bgr_and_alpha(image)
     mask_bin = normalize_mask(mask, image_bgr.shape)
+    mask_nonzero = int(np.count_nonzero(mask_bin))
+    print(
+        f"[imgexe] telea_inpaint input={input_path.name} mask={mask_path.name} "
+        f"size={image_bgr.shape[1]}x{image_bgr.shape[0]} mask_nonzero={mask_nonzero}",
+        file=sys.stdout,
+        flush=True,
+    )
 
-    if not np.any(mask_bin):
+    if not mask_nonzero:
         raise SystemExit('mask is empty after thresholding; 请确认蒙版中白色区域就是要去除的水印')
 
     result = cv2.inpaint(image_bgr, mask_bin, args.radius, cv2.INPAINT_TELEA)
