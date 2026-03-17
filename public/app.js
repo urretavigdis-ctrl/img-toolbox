@@ -28,6 +28,9 @@ const els = {
   brushTip: document.getElementById('brushTip'),
   inpaintModeBtn: document.getElementById('inpaintModeBtn'),
   alphaModeBtn: document.getElementById('alphaModeBtn'),
+  inpaintControls: document.getElementById('inpaintControls'),
+  inpaintRadius: document.getElementById('inpaintRadius'),
+  inpaintRadiusValue: document.getElementById('inpaintRadiusValue'),
   alphaControls: document.getElementById('alphaControls'),
   alphaSlider: document.getElementById('alphaSlider'),
   alphaValue: document.getElementById('alphaValue'),
@@ -67,6 +70,7 @@ const state = {
   tool: 'paint',
   removeMode: 'inpaint',
   brushSize: Number(els.brushSize.value),
+  inpaintRadius: Number(els.inpaintRadius?.value || 4.5),
   isDrawing: false,
   isComparing: false,
   lastPoint: null,
@@ -89,6 +93,7 @@ function boot() {
   updateClock();
   setInterval(updateClock, 1000);
   syncBrushUi();
+  syncInpaintUi();
   syncRemoveModeUi();
   syncToolUi();
   syncCompareUi();
@@ -161,6 +166,10 @@ function bindEvents() {
   els.eraseModeBtn.addEventListener('click', () => setTool('erase'));
   els.inpaintModeBtn.addEventListener('click', () => setRemoveMode('inpaint'));
   els.alphaModeBtn.addEventListener('click', () => setRemoveMode('alpha'));
+  els.inpaintRadius?.addEventListener('input', () => {
+    state.inpaintRadius = Number(els.inpaintRadius.value);
+    syncInpaintUi();
+  });
   els.themeToggle?.addEventListener('click', toggleTheme);
 
   bindCompareButton(els.compareHoldBtn);
@@ -530,6 +539,12 @@ function syncBrushUi() {
   els.brushValue.textContent = String(state.brushSize);
 }
 
+function syncInpaintUi() {
+  if (els.inpaintRadiusValue) {
+    els.inpaintRadiusValue.textContent = state.inpaintRadius.toFixed(1).replace(/\.0$/, '');
+  }
+}
+
 function setRemoveMode(mode) {
   state.removeMode = mode;
   syncRemoveModeUi();
@@ -539,9 +554,10 @@ function syncRemoveModeUi() {
   const isInpaint = state.removeMode === 'inpaint';
   els.inpaintModeBtn.classList.toggle('active', isInpaint);
   els.alphaModeBtn.classList.toggle('active', !isInpaint);
+  els.inpaintControls?.classList.toggle('hidden', !isInpaint);
   els.alphaControls.classList.toggle('hidden', isInpaint);
   els.modeTip.textContent = isInpaint
-    ? '扩散修复：适合不透明水印，使用周边纹理补全。'
+    ? '扩散修复：适合不透明水印。半径越大，补全更强，但也更容易抹平细节；平滑背景会自动做轻量优化。'
     : '透明还原：适合浅色半透明水印，按颜色与不透明度做反向混合。';
   els.runBtn.textContent = isInpaint ? '去除水印' : '透明还原';
 }
@@ -642,6 +658,7 @@ async function runInpaint() {
   formData.append('image', state.workingBlob, 'image.png');
   formData.append('mask', maskInfo.blob, 'mask.png');
   formData.append('format', state.outputFormat);
+  formData.append('radius', String(state.inpaintRadius));
 
   console.info('[imgexe] inpaint request', {
     api: buildApiUrl('/api/inpaint'),
@@ -650,6 +667,7 @@ async function runInpaint() {
     maskPixels: maskInfo.nonZeroPixels,
     maskCoverage: maskInfo.coverage,
     format: state.outputFormat,
+    radius: state.inpaintRadius,
   });
 
   const res = await fetch(buildApiUrl('/api/inpaint'), {
@@ -671,6 +689,8 @@ async function runInpaint() {
   const algo = (res.headers.get('X-Inpaint-Algo') || 'telea').trim();
   console.info('[imgexe] inpaint response', {
     algo,
+    radius: res.headers.get('X-Inpaint-Radius'),
+    smoothOptimized: res.headers.get('X-Inpaint-Smooth'),
     contentType: res.headers.get('Content-Type'),
     contentLength: res.headers.get('Content-Length'),
   });

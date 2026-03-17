@@ -28,7 +28,10 @@ const MIME_BY_FORMAT = {
 const PYTHON_TIMEOUT_MS = Number(process.env.INPAINT_TIMEOUT_MS || 60_000);
 const DEFAULT_CORS_METHODS = ['GET', 'POST', 'OPTIONS'];
 const DEFAULT_CORS_HEADERS = ['Content-Type'];
-const DEFAULT_CORS_EXPOSE_HEADERS = ['X-Inpaint-Algo', 'Content-Type'];
+const DEFAULT_CORS_EXPOSE_HEADERS = ['X-Inpaint-Algo', 'X-Inpaint-Radius', 'X-Inpaint-Smooth', 'Content-Type'];
+const DEFAULT_INPAINT_RADIUS = Number(process.env.DEFAULT_INPAINT_RADIUS || 4.5);
+const MIN_INPAINT_RADIUS = 1;
+const MAX_INPAINT_RADIUS = 12;
 
 app.use(corsMiddleware);
 app.options('*', corsPreflightHandler);
@@ -50,6 +53,7 @@ app.post('/api/inpaint', upload.fields([
   const image = req.files?.image?.[0];
   const mask = req.files?.mask?.[0];
   const format = normalizeFormat(req.body?.format);
+  const radius = normalizeRadius(req.body?.radius);
 
   if (!image || !mask) {
     return res.status(400).json({ error: 'image and mask are required' });
@@ -61,6 +65,10 @@ app.post('/api/inpaint', upload.fields([
 
   if (!format) {
     return res.status(400).json({ error: 'format must be one of: jpg, jpeg, png, webp' });
+  }
+
+  if (radius == null) {
+    return res.status(400).json({ error: `radius must be a number between ${MIN_INPAINT_RADIUS} and ${MAX_INPAINT_RADIUS}` });
   }
 
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'imgexe-inpaint-'));
@@ -79,6 +87,7 @@ app.post('/api/inpaint', upload.fields([
       '--mask', maskPath,
       '--output', outputPath,
       '--format', format,
+      '--radius', String(radius),
     ], { timeoutMs: PYTHON_TIMEOUT_MS });
 
     if (py.code !== 0) {
@@ -94,9 +103,13 @@ app.post('/api/inpaint', upload.fields([
       return res.status(500).json({ error: 'inpaint finished but output file was not created' });
     }
 
+    const meta = parsePythonMeta(py.stdout);
+
     res.setHeader('Content-Type', MIME_BY_FORMAT[format]);
     res.setHeader('Cache-Control', 'no-store');
-    res.setHeader('X-Inpaint-Algo', 'telea');
+    res.setHeader('X-Inpaint-Algo', meta.algo || 'telea');
+    if (meta.radius) res.setHeader('X-Inpaint-Radius', String(meta.radius));
+    if (meta.smooth != null) res.setHeader('X-Inpaint-Smooth', String(meta.smooth));
     res.send(out);
   } catch (error) {
     res.status(500).json({ error: formatServerError(error) });
@@ -125,6 +138,32 @@ function normalizeFormat(value) {
     return null;
   }
   return format;
+}
+
+function normalizeRadius(value) {
+  if (value == null || value === '') return DEFAULT_INPAINT_RADIUS;
+  const radius = Number(value);
+  if (!Number.isFinite(radius)) return null;
+  if (radius < MIN_INPAINT_RADIUS || radius > MAX_INPAINT_RADIUS) return null;
+  return Math.round(radius * 10) / 10;
+}
+
+function parsePythonMeta(stdout) {
+  const meta = { algo: 'telea' };
+  const text = String(stdout || '');
+  const match = text.match(/\[imgexe-meta\]\s+(\{.*\})/);
+  if (!match) return meta;
+
+  try {
+    const parsed = JSON.parse(match[1]);
+    return {
+      algo: parsed.algo || 'telea',
+      radius: Number.isFinite(Number(parsed.radius)) ? Number(parsed.radius) : undefined,
+      smooth: typeof parsed.smooth === 'boolean' ? parsed.smooth : undefined,
+    };
+  } catch {
+    return meta;
+  }
 }
 
 function looksLikeImage(file) {

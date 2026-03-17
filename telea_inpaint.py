@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -27,6 +28,9 @@ except Exception as exc:  # pragma: no cover - import failure path
 
 
 SUPPORTED_FORMATS = {"jpg", "jpeg", "png", "webp"}
+MASK_THRESHOLD = 10
+MIN_BLEND_KERNEL = 3
+MAX_BLEND_KERNEL = 15
 
 
 def ensure_bgr_and_alpha(image: np.ndarray):
@@ -47,8 +51,28 @@ def normalize_mask(mask: np.ndarray, target_shape):
     if mask.shape[:2] != target_shape[:2]:
         mask = cv2.resize(mask, (target_shape[1], target_shape[0]), interpolation=cv2.INTER_NEAREST)
 
-    _, mask_bin = cv2.threshold(mask, 10, 255, cv2.THRESH_BINARY)
+    _, mask_bin = cv2.threshold(mask, MASK_THRESHOLD, 255, cv2.THRESH_BINARY)
     return mask_bin
+
+
+def expand_inpaint_mask(mask_bin: np.ndarray):
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    return cv2.dilate(mask_bin, kernel, iterations=1)
+
+
+def build_blend_mask(mask_bin: np.ndarray, radius: float):
+    blur_size = int(round(max(MIN_BLEND_KERNEL, min(MAX_BLEND_KERNEL, radius * 2 + 1))))
+    if blur_size % 2 == 0:
+        blur_size += 1
+
+    blurred = cv2.GaussianBlur(mask_bin, (blur_size, blur_size), 0)
+    return blurred.astype(np.float32) / 255.0
+
+
+def blend_edges(original_bgr: np.ndarray, repaired_bgr: np.ndarray, blend_mask: np.ndarray):
+    alpha = np.clip(blend_mask, 0.0, 1.0)[..., None]
+    blended = (original_bgr.astype(np.float32) * (1.0 - alpha)) + (repaired_bgr.astype(np.float32) * alpha)
+    return np.clip(blended, 0, 255).astype(np.uint8)
 
 
 def read_mask(mask_path: Path):
@@ -72,6 +96,41 @@ def read_mask(mask_path: Path):
         return cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY)
 
     raise SystemExit(f"unsupported mask channels: {channels}")
+
+
+def estimate_background_smoothness(image_bgr: np.ndarray, mask_bin: np.ndarray, radius: float):
+    kernel = max(3, int(round(radius * 4)))
+    if kernel % 2 == 0:
+        kernel += 1
+
+    dilated = cv2.dilate(mask_bin, np.ones((kernel, kernel), dtype=np.uint8), iterations=1)
+    ring = cv2.subtract(dilated, mask_bin)
+    ring_pixels = int(np.count_nonzero(ring))
+    if ring_pixels < 64:
+        return False, 999.0
+
+    gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+    lap = cv2.Laplacian(gray, cv2.CV_32F, ksize=3)
+    values = np.abs(lap[ring > 0])
+    if values.size == 0:
+        return False, 999.0
+
+    score = float(np.mean(values))
+    return score < 6.0, score
+
+
+def smooth_fill_before_inpaint(image_bgr: np.ndarray, mask_bin: np.ndarray, radius: float):
+    kernel = max(5, int(round(radius * 3)))
+    if kernel % 2 == 0:
+        kernel += 1
+
+    blurred = cv2.GaussianBlur(image_bgr, (kernel, kernel), sigmaX=0, sigmaY=0)
+    feather = cv2.dilate(mask_bin, np.ones((3, 3), dtype=np.uint8), iterations=1)
+    result = image_bgr.copy()
+    blend = (feather.astype(np.float32) / 255.0)[:, :, None]
+    mixed = (blurred.astype(np.float32) * blend) + (image_bgr.astype(np.float32) * (1.0 - blend))
+    result[feather > 0] = np.clip(mixed[feather > 0], 0, 255).astype(np.uint8)
+    return result
 
 
 def save_output(result_bgr: np.ndarray, original_alpha, output_path: Path, fmt: str):
@@ -120,7 +179,7 @@ def main():
     parser.add_argument('--mask', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--format', default='jpeg')
-    parser.add_argument('--radius', type=float, default=3.0)
+    parser.add_argument('--radius', type=float, default=4.5)
     args = parser.parse_args()
 
     fmt, input_path, mask_path, output_path = validate_args(args)
@@ -134,19 +193,42 @@ def main():
     image_bgr, original_alpha = ensure_bgr_and_alpha(image)
     mask_bin = normalize_mask(mask, image_bgr.shape)
     mask_nonzero = int(np.count_nonzero(mask_bin))
-    print(
-        f"[imgexe] telea_inpaint input={input_path.name} mask={mask_path.name} "
-        f"size={image_bgr.shape[1]}x{image_bgr.shape[0]} mask_nonzero={mask_nonzero}",
-        file=sys.stdout,
-        flush=True,
-    )
 
     if not mask_nonzero:
         raise SystemExit('mask is empty after thresholding; 请确认蒙版中白色区域就是要去除的水印')
 
-    result = cv2.inpaint(image_bgr, mask_bin, args.radius, cv2.INPAINT_TELEA)
+    inpaint_mask = expand_inpaint_mask(mask_bin)
+    inpaint_nonzero = int(np.count_nonzero(inpaint_mask))
+    smooth_bg, smooth_score = estimate_background_smoothness(image_bgr, inpaint_mask, args.radius)
+    effective_radius = args.radius + 1.0 if smooth_bg else args.radius
+    working_image = smooth_fill_before_inpaint(image_bgr, inpaint_mask, effective_radius) if smooth_bg else image_bgr
+    blend_mask = build_blend_mask(inpaint_mask, effective_radius)
+
+    print(
+        f"[imgexe] telea_inpaint input={input_path.name} mask={mask_path.name} "
+        f"size={image_bgr.shape[1]}x{image_bgr.shape[0]} mask_nonzero={mask_nonzero} "
+        f"expanded_nonzero={inpaint_nonzero}",
+        file=sys.stdout,
+        flush=True,
+    )
+    print(
+        "[imgexe-meta] " + json.dumps({
+            "algo": "telea",
+            "radius": round(float(effective_radius), 2),
+            "smooth": bool(smooth_bg),
+            "smooth_score": round(float(smooth_score), 3),
+            "mask_expanded": bool(inpaint_nonzero > mask_nonzero),
+            "blend_kernel": int(round(max(MIN_BLEND_KERNEL, min(MAX_BLEND_KERNEL, effective_radius * 2 + 1)))) | 1,
+        }, ensure_ascii=False),
+        file=sys.stdout,
+        flush=True,
+    )
+
+    result = cv2.inpaint(working_image, inpaint_mask, effective_radius, cv2.INPAINT_TELEA)
     if result is None or result.size == 0:
         raise SystemExit('opencv inpaint returned empty result')
+
+    result = blend_edges(image_bgr, result, blend_mask)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     save_output(result, original_alpha, output_path, fmt)
