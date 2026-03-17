@@ -1,3 +1,5 @@
+const API_BASE_URL = normalizeApiBaseUrl(window.IMGEXE_RUNTIME_CONFIG?.apiBaseUrl);
+
 const els = {
   clock: document.getElementById('clock'),
   date: document.getElementById('date'),
@@ -38,6 +40,9 @@ const els = {
   statusLabel: document.getElementById('statusLabel'),
   maskStateLabel: document.getElementById('maskStateLabel'),
   formatStateLabel: document.getElementById('formatStateLabel'),
+  themeToggle: document.getElementById('themeToggle'),
+  themeIcon: document.querySelector('.theme-box__icon'),
+  themeLabel: document.querySelector('.theme-box__label'),
   formatBtns: [...document.querySelectorAll('.format-btn')],
   viewerTabs: [...document.querySelectorAll('.viewer-tab')],
   viewerCards: [...document.querySelectorAll('.viewer-card')],
@@ -48,6 +53,8 @@ const ctx = {
   mask: els.maskCanvas.getContext('2d', { willReadFrequently: true }),
   result: els.resultCanvas.getContext('2d', { willReadFrequently: true }),
 };
+
+const THEME_KEY = 'imgexe-theme';
 
 const state = {
   imageLoaded: false,
@@ -67,11 +74,17 @@ const state = {
   hasMask: false,
   busy: false,
   viewMode: 'edit',
+  theme: 'dark',
+  imageWidth: 0,
+  imageHeight: 0,
+  displayWidth: 0,
+  displayHeight: 0,
 };
 
 boot();
 
 function boot() {
+  initTheme();
   bindEvents();
   updateClock();
   setInterval(updateClock, 1000);
@@ -138,6 +151,7 @@ function bindEvents() {
   els.inpaintModeBtn.addEventListener('click', () => setRemoveMode('inpaint'));
   els.alphaModeBtn.addEventListener('click', () => setRemoveMode('alpha'));
   els.togglePreviewBtn.addEventListener('click', () => toggleViewMode());
+  els.themeToggle?.addEventListener('click', toggleTheme);
 
   els.alphaSlider.addEventListener('input', () => {
     els.alphaValue.textContent = els.alphaSlider.value;
@@ -166,6 +180,7 @@ function bindEvents() {
   els.runBtn.addEventListener('click', runRemoval);
   els.downloadBtn.addEventListener('click', downloadResult);
   window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener('resize', relayoutCanvases);
 
   const start = (event) => {
     if (!state.imageLoaded || state.busy) return;
@@ -208,6 +223,32 @@ function bindEvents() {
   window.addEventListener('touchcancel', end);
 }
 
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+  state.theme = savedTheme === 'light' || savedTheme === 'dark'
+    ? savedTheme
+    : prefersLight
+      ? 'light'
+      : 'dark';
+  applyTheme(state.theme);
+}
+
+function toggleTheme() {
+  applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+}
+
+function applyTheme(theme) {
+  state.theme = theme === 'light' ? 'light' : 'dark';
+  const root = document.documentElement;
+  root.classList.toggle('light', state.theme === 'light');
+  root.classList.toggle('dark', state.theme === 'dark');
+  els.themeToggle?.setAttribute('aria-pressed', String(state.theme === 'light'));
+  if (els.themeIcon) els.themeIcon.textContent = state.theme === 'dark' ? '◐' : '◑';
+  if (els.themeLabel) els.themeLabel.textContent = state.theme === 'dark' ? 'MONO' : 'INK';
+  localStorage.setItem(THEME_KEY, state.theme);
+}
+
 function handleKeyDown(event) {
   if (event.target?.matches('input, textarea')) return;
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
@@ -217,6 +258,7 @@ function handleKeyDown(event) {
   }
   if (event.key.toLowerCase() === 'b') setTool('paint');
   if (event.key.toLowerCase() === 'e') setTool('erase');
+  if (event.key.toLowerCase() === 't') toggleTheme();
   if (event.key === '[') {
     state.brushSize = Math.max(5, state.brushSize - 5);
     els.brushSize.value = String(state.brushSize);
@@ -275,13 +317,15 @@ async function applyBitmapAsWorkingImage(bitmap) {
   state.currentImageBitmap = bitmap;
   const width = bitmap.width;
   const height = bitmap.height;
+  state.imageWidth = width;
+  state.imageHeight = height;
 
   [els.mainCanvas, els.maskCanvas, els.resultCanvas].forEach((canvas) => {
     canvas.width = width;
     canvas.height = height;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
   });
+
+  relayoutCanvases();
 
   ctx.main.clearRect(0, 0, width, height);
   ctx.main.drawImage(bitmap, 0, 0);
@@ -300,14 +344,23 @@ function getCanvasPoint(event) {
   if (!state.imageLoaded) return null;
   const rect = els.maskCanvas.getBoundingClientRect();
   const source = event.touches?.[0] || event;
-  if (!source || source.clientX == null || source.clientY == null) return null;
+  if (!source || source.clientX == null || source.clientY == null || rect.width <= 0 || rect.height <= 0) {
+    return null;
+  }
+
+  const rawViewX = source.clientX - rect.left;
+  const rawViewY = source.clientY - rect.top;
+  const viewX = Math.max(0, Math.min(rect.width, rawViewX));
+  const viewY = Math.max(0, Math.min(rect.height, rawViewY));
   const scaleX = els.maskCanvas.width / rect.width;
   const scaleY = els.maskCanvas.height / rect.height;
+
   return {
-    x: (source.clientX - rect.left) * scaleX,
-    y: (source.clientY - rect.top) * scaleY,
-    viewX: source.clientX - rect.left,
-    viewY: source.clientY - rect.top,
+    x: viewX * scaleX,
+    y: viewY * scaleY,
+    viewX,
+    viewY,
+    inside: rawViewX >= 0 && rawViewX <= rect.width && rawViewY >= 0 && rawViewY <= rect.height,
   };
 }
 
@@ -317,14 +370,15 @@ function updateBrushCursor(point, event) {
     return;
   }
   const rect = els.maskCanvas.getBoundingClientRect();
+  const wrapRect = els.editWrap.getBoundingClientRect();
   const scale = rect.width / Math.max(els.maskCanvas.width, 1);
   const viewSize = state.brushSize * scale;
   els.brushCursor.classList.remove('hidden');
   els.brushCursor.style.width = `${Math.max(8, viewSize)}px`;
   els.brushCursor.style.height = `${Math.max(8, viewSize)}px`;
-  els.brushCursor.style.left = `${point.viewX}px`;
-  els.brushCursor.style.top = `${point.viewY}px`;
-  if (event?.type === 'touchmove' || event?.type === 'touchstart') {
+  els.brushCursor.style.left = `${(rect.left - wrapRect.left) + point.viewX}px`;
+  els.brushCursor.style.top = `${(rect.top - wrapRect.top) + point.viewY}px`;
+  if (!point.inside || event?.type === 'touchmove' || event?.type === 'touchstart') {
     els.brushCursor.classList.add('hidden');
   }
 }
@@ -490,7 +544,7 @@ async function runInpaint() {
   formData.append('mask', await buildMaskBlob(), 'mask.png');
   formData.append('format', state.outputFormat);
 
-  const res = await fetch('/api/inpaint', { method: 'POST', body: formData });
+  const res = await fetch(buildApiUrl('/api/inpaint'), { method: 'POST', body: formData });
   if (!res.ok) {
     let msg = '服务端修复失败';
     try {
@@ -559,6 +613,38 @@ async function buildMaskBlob() {
   }
   tempCtx.putImageData(imageData, 0, 0);
   return await canvasToBlob(temp, 'image/png');
+}
+
+function relayoutCanvases() {
+  if (!state.imageWidth || !state.imageHeight) return;
+
+  [
+    [els.editWrap, [els.mainCanvas, els.maskCanvas]],
+    [els.resultWrap, [els.resultCanvas]],
+  ].forEach(([wrap, canvases]) => {
+    const width = wrap.clientWidth;
+    const height = wrap.clientHeight;
+    if (!width || !height) return;
+
+    const style = window.getComputedStyle(wrap);
+    const padX = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0');
+    const padY = parseFloat(style.paddingTop || '0') + parseFloat(style.paddingBottom || '0');
+    const availableWidth = Math.max(1, width - padX);
+    const availableHeight = Math.max(1, height - padY);
+    const scale = Math.min(availableWidth / state.imageWidth, availableHeight / state.imageHeight, 1);
+    const displayWidth = Math.max(1, Math.round(state.imageWidth * scale));
+    const displayHeight = Math.max(1, Math.round(state.imageHeight * scale));
+
+    canvases.forEach((canvas) => {
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
+    });
+
+    if (wrap === els.editWrap) {
+      state.displayWidth = displayWidth;
+      state.displayHeight = displayHeight;
+    }
+  });
 }
 
 function createCanvas(width, height) {
@@ -653,4 +739,15 @@ function mimeFromFormat(format) {
 
 function qualityFromFormat(format) {
   return format === 'png' ? undefined : 0.92;
+}
+
+function normalizeApiBaseUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\/$/, '');
+}
+
+function buildApiUrl(pathname) {
+  if (!API_BASE_URL) return pathname;
+  return `${API_BASE_URL}${pathname.startsWith('/') ? pathname : `/${pathname}`}`;
 }

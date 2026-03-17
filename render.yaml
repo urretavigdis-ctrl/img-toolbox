@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: imgexe-watermark-api
+    runtime: node
+    plan: starter
+    rootDir: 图像工具箱
+    buildCommand: |
+      npm install
+      python -m pip install --upgrade pip
+      python -m pip install -r requirements.txt
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: INPAINT_TIMEOUT_MS
+        value: 60000

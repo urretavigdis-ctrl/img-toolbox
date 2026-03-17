@@ -9,22 +9,42 @@
 - 去除模式 1：扩散修复（服务端 Telea inpaint）
 - 去除模式 2：透明还原（前端本地反向 alpha 混合）
 
-## 当前后端状态
-目前优先保证的是 `/api/inpaint` 这条服务端链路：
-- Node 接收 `image + mask + format`
-- 临时落盘到系统 tmp 目录
-- 调用 `telea_inpaint.py`
-- 用 OpenCV `cv2.INPAINT_TELEA` 输出结果
-- 成功时返回二进制图片，并附带 `X-Inpaint-Algo: telea`
-- 失败时尽量返回**可读、可操作**的错误信息
+## 部署架构
+当前推荐部署方式已经整理为：
+
+- **Vercel**：部署前端静态页面（`public/`）
+- **Render**：部署 Node + Python 后端（`/api/inpaint`）
+
+详细说明见：
+
+- [`DEPLOYMENT.md`](./DEPLOYMENT.md)
+- [`render.yaml`](./render.yaml)
 
 ## 目录
 - `public/`：前端静态页面资源
-- `server.js`：本地 Node 服务，提供 `/api/inpaint`
+- `public/runtime-config.js`：前端运行时配置，主要用于 API Base URL
+- `scripts/prepare-frontend.mjs`：根据 `IMGEXE_API_BASE_URL` 生成前端运行时配置
+- `server.js`：Node 服务，提供 `/api/inpaint` 和 `/api/health`
 - `telea_inpaint.py`：Python/OpenCV 的 Telea 修复脚本
 - `requirements.txt`：Python 依赖
-- `package.json`：Node 依赖与启动脚本
+- `package.json`：Node 依赖与脚本
+- `render.yaml`：Render Blueprint 示例
 - `example/`：本地 smoke test 示例输入
+
+## 前后端分离约定
+### 前端
+- 入口目录：`public/`
+- 默认 API：同源 `/api/inpaint`
+- 若设置 `IMGEXE_API_BASE_URL`，前端会改为请求 `${IMGEXE_API_BASE_URL}/api/inpaint`
+
+### 后端
+- 继续沿用当前接口：`POST /api/inpaint`
+- 保持表单字段不变：
+  - `image`
+  - `mask`
+  - `format`
+
+这样可以在**不改核心方法路线**的前提下，把前端挂 Vercel、后端挂 Render。
 
 ## /api/inpaint 接口
 - 方法：`POST`
@@ -69,12 +89,24 @@ python -m pip install -U pip
 python -m pip install -r requirements.txt
 ```
 
-### 3) 启动服务
+### 3) 启动本地一体服务
 ```bash
 npm start
 ```
 
 默认地址：`http://localhost:3100`
+
+前端默认附带 `public/runtime-config.js`，本地一体运行时无需额外配置；如果要切到前后端分离地址，可执行：
+
+```bash
+npm run prepare:frontend
+# 或：IMGEXE_API_BASE_URL=https://your-api.example.com npm run prepare:frontend
+```
+
+### 4) 若要模拟分离部署，生成前端 API 配置
+```bash
+IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
+```
 
 ## Python 选择逻辑
 `server.js` 会按下面顺序找 Python：
@@ -107,8 +139,6 @@ python telea_inpaint.py \
   --output /tmp/telea-out.png \
   --format png
 ```
-
-如果成功，说明 OpenCV / Pillow / numpy 基本没问题。
 
 ### 验证 2：再测 Node API
 ```bash
