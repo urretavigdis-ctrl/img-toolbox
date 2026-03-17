@@ -1,4 +1,4 @@
-# 图像工具箱
+# img-toolbox-app
 
 高相似复刻 `imgexe.com` 的图像工具站项目目录。
 
@@ -111,8 +111,8 @@ IMGEXE_API_BASE_URL=http://localhost:3100 npm run prepare:frontend
 ## Python 选择逻辑
 `server.js` 会按下面顺序找 Python：
 1. `INPAINT_PYTHON` 环境变量
-2. `图像工具箱/.venv/bin/python`
-3. `图像工具箱/.venv/bin/python3`
+2. `img-toolbox-app/.venv/bin/python`
+3. `img-toolbox-app/.venv/bin/python3`
 4. 当前工作目录下的 `.venv/bin/python`
 5. `python3.12`
 6. `python3.11`

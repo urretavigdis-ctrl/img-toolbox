@@ -2,8 +2,8 @@
 
 这个项目现在按 **前后端分离** 方式部署：
 
-- **前端（Vercel）**：静态页面，目录为 `图像工具箱/public/`
-- **后端（Render）**：Node API + Python/OpenCV，目录为 `图像工具箱/`
+- **前端（Vercel）**：静态页面，目录为 `img-toolbox-app/public/`
+- **后端（Render）**：Node API + Python/OpenCV，目录为 `img-toolbox-app/`
 
 核心路线不变：
 - 前端负责上传、画遮罩、透明还原
@@ -14,7 +14,7 @@
 ## 1. 目录职责
 
 ```text
-图像工具箱/
+img-toolbox-app/
 ├─ public/                # 前端静态资源（部署到 Vercel）
 │  ├─ index.html
 │  ├─ app.js
@@ -163,7 +163,7 @@ curl https://你的-render-域名.onrender.com/api/health
 
 仓库里已给了示例：
 
-- `图像工具箱/render.yaml`
+- `img-toolbox-app/render.yaml`
 
 可作为 Render Blueprint 导入参考，但如果控制台 UI 更顺手，直接照上面的参数填也行。
 

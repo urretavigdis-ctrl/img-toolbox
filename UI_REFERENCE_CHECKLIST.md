@@ -1,7 +1,7 @@
 # UI Reference Checklist
 
 参考对象：`imgexe.com` 的「去除水印.exe」页面（以 `https://imgexe.com/zh/remove-watermark` 为准）  
-当前对照对象：`图像工具箱/public/index.html` + `public/styles.css`
+当前对照对象：`img-toolbox-app/public/index.html` + `public/styles.css`
 
 > 本清单只做 **QA / 参考对照**，不扩展功能；聚焦：**页面比例、按钮样式、控制面板密度、顶部栏 / 页脚设备感**。
 
