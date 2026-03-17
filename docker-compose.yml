@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: img-toolbox-app
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3100
+      INPAINT_TIMEOUT_MS: 60000
+      CORS_ALLOW_ORIGINS: "*"
+    expose:
+      - "3100"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: img-toolbox-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
