@@ -44,6 +44,7 @@
 
       <main class="layout">
         <aside class="side rail-left frame rail-simple">
+          <div class="side-title"><span class="title-ornament">||||||</span><strong>TOOLS.SYS</strong><span class="title-ornament">[ ]</span></div>
           <button class="rail-item muted"><span class="rail-item__icon">▣</span><em>长图拼接.exe</em></button>
           <button class="rail-item muted"><span class="rail-item__icon">▤</span><em>宫格拼图.exe</em></button>
           <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>图片压缩.exe</em></button>
@@ -52,9 +53,11 @@
         </aside>
 
         <section class="workbench frame">
-          <div class="panel-title">
+          <div class="panel-title sys-title">
+            <span class="title-ornament">||||||</span>
             <span>去除水印.exe</span>
-            <strong>单画布</strong>
+            <strong>WORKBENCH.SYS</strong>
+            <span class="title-ornament">[ ]</span>
           </div>
 
           <section class="hero-strip" aria-label="editor status bar">
@@ -66,10 +69,10 @@
 
           <div class="editor-grid">
             <section class="canvas-panel frame-sub">
-              <div class="toolbar-strip panel-strip">
+              <div class="toolbar-strip panel-strip module-titlebar">
                 <div class="strip-label">
-                  <span>WORKSPACE</span>
-                  <strong>单画布工作区</strong>
+                  <span class="title-ornament">||||||</span>
+                  <strong>WORKSPACE.SYS</strong>
                 </div>
                 <div class="toolbar-left">
                   <button id="openFileBtn" class="toolbar-btn strong"><span class="btn-icon">＋</span><span class="btn-label">上传图片</span></button>
@@ -123,11 +126,12 @@
             </section>
 
             <aside class="control-panel frame-sub">
-              <div class="control-head panel-strip">
+              <div class="control-head panel-strip module-titlebar">
                 <div class="strip-label strip-label--quiet">
-                  <span>PANEL</span>
-                  <strong>控制</strong>
+                  <span class="title-ornament">||||||</span>
+                  <strong>CONTROL.SYS</strong>
                 </div>
+                <span class="title-ornament">[ ]</span>
               </div>
 
               <section class="block stats-block">
@@ -146,12 +150,12 @@
               </section>
 
               <section class="block compare-block">
-                <div class="section-label">对比</div>
+                <div class="section-label">[ ] COMPARE.EXE ||||||</div>
                 <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住看原图</span></button>
               </section>
 
               <section class="block">
-                <div class="section-label">画笔</div>
+                <div class="section-label">[ ] BRUSH.SYS ||||||</div>
                 <div class="range-row">
                   <div>画笔大小</div>
                   <strong><span id="brushValue">30</span> px</strong>
@@ -165,7 +169,7 @@
               </section>
 
               <section class="block">
-                <div class="section-label">模式</div>
+                <div class="section-label">[ ] MODE.SYS ||||||</div>
                 <div class="segmented">
                   <button id="inpaintModeBtn" class="seg active">扩散修复</button>
                   <button id="alphaModeBtn" class="seg">透明还原</button>
@@ -183,7 +187,7 @@
               </section>
 
               <section class="block">
-                <div class="section-label">格式</div>
+                <div class="section-label">[ ] FORMAT.EXE ||||||</div>
                 <div class="segmented three">
                   <button data-format="jpeg" class="seg format-btn active">JPG</button>
                   <button data-format="png" class="seg format-btn">PNG</button>
@@ -192,7 +196,7 @@
               </section>
 
               <section class="block action-block">
-                <div class="section-label">操作</div>
+                <div class="section-label">[ ] ACTION.EXE ||||||</div>
                 <button id="runBtn" class="primary-btn" disabled><span class="btn-icon">✦</span><span class="btn-label">去除水印</span></button>
                 <button id="downloadBtn" class="outline-btn" disabled><span class="btn-icon">↓</span><span class="btn-label">下载结果</span></button>
                 <div class="mini-actions">
@@ -203,7 +207,7 @@
               </section>
 
               <section class="block block--tips">
-                <div class="section-label">流程</div>
+                <div class="section-label">[ ] FLOW.SYS ||||||</div>
                 <div class="tip-list compact tip-list--flow">
                   <p><span>01</span> 上传</p>
                   <p><span>02</span> 标记</p>
@@ -221,6 +225,7 @@
         </section>
 
         <aside class="side rail-right frame rail-simple">
+          <div class="side-title"><span class="title-ornament">||||||</span><strong>MODULES.EXE</strong><span class="title-ornament">[ ]</span></div>
           <button class="rail-item muted"><span class="rail-item__icon">▦</span><em>图片分割.exe</em></button>
           <button class="rail-item muted"><span class="rail-item__icon">◈</span><em>添加水印.exe</em></button>
           <button class="rail-item active"><span class="rail-item__icon">✦</span><em>去除水印.exe</em></button>
