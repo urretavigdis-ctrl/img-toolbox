@@ -65,7 +65,8 @@
                     <span class="upload-glyph__plus">＋</span>
                   </div>
                   <div class="drop-main">点击或拖拽上传图片</div>
-                                    <button id="dropUploadBtn" class="drop-upload" type="button"><span class="btn-icon">＋</span><span class="btn-label">选择图片</span></button>
+                  <div class="drop-sub">支持 JPG / PNG / WEBP，亦可直接粘贴截图</div>
+                  <button id="dropUploadBtn" class="drop-upload" type="button"><span class="btn-icon">＋</span><span class="btn-label">选择图片</span></button>
                 </div>
 
                 <input id="fileInput" type="file" accept="image/*" hidden />
@@ -78,7 +79,6 @@
                     </div>
 
                     <div class="canvas-stage" id="editWrap">
-                      <div class="canvas-footer-note">// QQ群组 / IMGEXE TERMINAL / WATERMARK REMOVAL WORKSPACE</div>
                       <div class="stage-hud">
                         <div class="stage-mode">
                           <span class="stage-mode__label">VIEW</span>
@@ -100,6 +100,18 @@
             </section>
 
             <aside class="control-panel">
+              <section class="panel-module panel-module--status">
+                <div class="module-heading">
+                  <span>状态信息</span>
+                  <em>STATUS</em>
+                </div>
+                <div class="stats-block">
+                  <div class="stat-card"><span>状态</span><strong id="statusLabel">待机中</strong></div>
+                  <div class="stat-card"><span>标记</span><strong id="maskStateLabel">未标记</strong></div>
+                  <div class="stat-card"><span>输出</span><strong id="formatStateLabel">JPG</strong></div>
+                </div>
+              </section>
+
               <section class="panel-module panel-module--format">
                 <div class="module-heading">
                   <span>输出格式</span>
@@ -126,6 +138,7 @@
                   <button id="paintModeBtn" class="seg active"><span class="seg-icon">✎</span><span>画笔</span></button>
                   <button id="eraseModeBtn" class="seg"><span class="seg-icon">⌫</span><span>橡皮</span></button>
                 </div>
+                <p id="brushTip" class="assist-text">涂抹要去除的区域。</p>
               </section>
 
               <section class="panel-module panel-module--mode">
@@ -146,6 +159,7 @@
                   <input id="alphaSlider" type="range" min="1" max="99" value="80" />
                   <label class="color-row">水印颜色 <input id="colorInput" type="color" value="#ffffff" /></label>
                 </div>
+                <p id="modeTip" class="assist-text">适合不透明水印；半径越大，补全越强。</p>
               </section>
 
               <section class="panel-module panel-module--actions">
@@ -160,7 +174,7 @@
                   <button id="undoBtn" class="ghost-btn" disabled><span class="btn-icon">↶</span><span class="btn-label">撤销</span></button>
                   <button id="clearMaskBtn" class="ghost-btn" disabled><span class="btn-icon">⌫</span><span class="btn-label">清除标记</span></button>
                 </div>
-                <div id="status" class="status visually-hidden"></div>
+                <div id="status" class="status"></div>
               </section>
             </aside>
           </div>
@@ -175,15 +189,6 @@
         </aside>
       </main>
     </div>
-
-
-      <div class="dom-keepalive visually-hidden" aria-hidden="true">
-        <span id="statusLabel">待机中</span>
-        <span id="maskStateLabel">未标记</span>
-        <span id="formatStateLabel">JPG</span>
-        <span id="brushTip">涂抹要去除的区域。</span>
-        <span id="modeTip">适合不透明水印；半径越大，补全越强。</span>
-      </div>
 
     <script src="./runtime-config.js"></script>
     <script type="module" src="./app.js"></script>
