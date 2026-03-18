@@ -57,8 +57,9 @@
             <strong>单画布</strong>
           </div>
 
-          <section class="hero-strip">
+          <section class="hero-strip" aria-label="editor status bar">
             <div class="hero-copy">
+              <span class="hero-kicker">EDITOR / REMOVE WATERMARK</span>
               <h1>去除水印</h1>
             </div>
           </section>
@@ -83,11 +84,11 @@
               <div id="dropzone" class="dropzone">
                 <div class="drop-inner" id="dropInner">
                   <div class="drop-gridlines"></div>
-                  <div class="drop-badge">CANVAS IDLE</div>
-                  <div class="drop-main">拖拽或粘贴图片</div>
-                  <div class="drop-sub">JPG / PNG / WEBP</div>
+                  <div class="drop-badge">CANVAS IDLE / READY</div>
+                  <div class="drop-main">拖拽 / 粘贴</div>
+                  <div class="drop-sub">JPG · PNG · WEBP</div>
                   <div class="drop-actions">
-                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">打开图片</span></button>
+                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">打开</span></button>
                   </div>
                 </div>
 
@@ -147,7 +148,6 @@
               <section class="block compare-block">
                 <div class="section-label">对比</div>
                 <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住看原图</span></button>
-                <p class="tip">按住查看原图。</p>
               </section>
 
               <section class="block">
@@ -203,13 +203,12 @@
               </section>
 
               <section class="block block--tips">
-                <div class="section-label">提示</div>
-                <div class="tip-list compact">
-                  <p>上传图片</p>
-                  <p>标记区域</p>
-                  <p>执行修复</p>
-                  <p>按住对比</p>
-                  <p>透明模式适合浅色水印</p>
+                <div class="section-label">流程</div>
+                <div class="tip-list compact tip-list--flow">
+                  <p><span>01</span> 上传</p>
+                  <p><span>02</span> 标记</p>
+                  <p><span>03</span> 修复</p>
+                  <p><span>04</span> 对比 / 下载</p>
                 </div>
               </section>
             </aside>
