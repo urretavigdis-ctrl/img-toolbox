@@ -44,10 +44,10 @@
 
         <section class="main-stage">
           <div class="workspace-shell">
-            <div class="stage-tabbar">[] 工作台.EXE / 去除水印编辑器</div>
+            <div class="workspace-header">[] 工作台.EXE / 去除水印编辑器</div>
 
-            <div class="main-content-wrapper">
-              <section class="canvas-panel">
+            <div class="workspace-split">
+              <section class="workspace-canvas-column">
                 <div class="canvas-toolbar">
                   <div class="toolbar-left">
                     <button id="openFileBtn" class="toolbar-btn strong"><span class="btn-icon">＋</span><span class="btn-label">上传图片</span></button>
@@ -180,14 +180,13 @@
       </main>
     </div>
 
-
-      <div class="dom-keepalive visually-hidden" aria-hidden="true">
-        <span id="statusLabel">待机中</span>
-        <span id="maskStateLabel">未标记</span>
-        <span id="formatStateLabel">JPG</span>
-        <span id="brushTip">涂抹要去除的区域。</span>
-        <span id="modeTip">适合不透明水印；半径越大，补全越强。</span>
-      </div>
+    <div class="dom-keepalive visually-hidden" aria-hidden="true">
+      <span id="statusLabel">待机中</span>
+      <span id="maskStateLabel">未标记</span>
+      <span id="formatStateLabel">JPG</span>
+      <span id="brushTip">涂抹要去除的区域。</span>
+      <span id="modeTip">适合不透明水印；半径越大，补全越强。</span>
+    </div>
 
     <script src="./runtime-config.js"></script>
     <script type="module" src="./app.js"></script>
