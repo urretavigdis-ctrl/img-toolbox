@@ -8,25 +8,34 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div class="brand-left">
-          <div class="brand-mark" aria-hidden="true"></div>
+      <div class="ambient ambient-a"></div>
+      <div class="ambient ambient-b"></div>
+
+      <header class="topbar frame">
+        <div class="brand-left topbox">
+          <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
           <div class="brand-copy">
-            <div class="brand-title">IMGEXE</div>
-            <div class="brand-sub">IMAGE SYSTEM TOOLBOX</div>
+            <div class="brand-title">imgexe</div>
+            <div class="brand-sub">REMOVE WATERMARK</div>
           </div>
         </div>
 
-        <div class="topbar-center">
-          <strong>|||||||||||| 图像工具箱 ||||||||||||</strong>
-          <span>IMGEXE.COM</span>
+        <div class="topbar-center topbox">
+          <div class="masthead-lines"></div>
+          <div class="masthead-copy">
+            <strong>去除水印</strong>
+            <span>WORKBENCH</span>
+          </div>
+          <div class="masthead-lines"></div>
         </div>
 
         <div class="topbar-right">
-          <button id="themeToggle" class="theme-box" type="button" aria-label="切换黑白主题" title="切换黑白主题">
-            <span class="theme-box__icon" aria-hidden="true">☼</span>
+          <button id="themeToggle" class="theme-box topbox" type="button" aria-label="切换黑白主题" title="切换黑白主题">
+            <span class="theme-box__icon" aria-hidden="true">◐</span>
+            <span class="theme-box__label">MONO</span>
           </button>
-          <div class="clock-wrap">
+          <div class="clock-wrap topbox">
+            <div class="clock-label">LOCAL TIME</div>
             <div id="clock"></div>
             <div id="date"></div>
           </div>
@@ -34,20 +43,34 @@
       </header>
 
       <main class="layout">
-        <aside class="side rail-left">
-          <button class="rail-item muted"><span class="rail-item__icon">▣</span><em>长图拼接.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">▤</span><em>宫格拼图.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>图片压缩.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">⇄</span><em>格式转换.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">✂</span><em>图片裁剪.exe</em></button>
+        <aside class="side rail-left frame rail-simple">
+          <div class="side-title"><strong>TOOLS</strong></div>
+          <button class="rail-item muted"><span class="rail-item__icon">▣</span><em>长图拼接</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">▤</span><em>宫格拼图</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>图片压缩</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">⇄</span><em>格式转换</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">✂</span><em>图片裁剪</em></button>
         </aside>
 
-        <section class="main-stage">
-          <div class="stage-tabbar">[] 工作台.EXE / 去除水印编辑器</div>
+        <section class="workbench frame">
+          <div class="panel-title sys-title">
+            <span>去除水印</span>
+            <strong>WORKBENCH.SYS</strong>
+          </div>
 
-          <div class="main-content-wrapper">
-            <section class="canvas-panel">
-              <div class="canvas-toolbar">
+          <section class="hero-strip" aria-label="editor status bar">
+            <div class="hero-copy">
+              <span class="hero-kicker">EDITOR / REMOVE WATERMARK</span>
+              <h1>去除水印</h1>
+            </div>
+          </section>
+
+          <div class="editor-grid">
+            <section class="canvas-panel frame-sub">
+              <div class="toolbar-strip panel-strip module-titlebar">
+                <div class="strip-label">
+                  <strong>WORKSPACE</strong>
+                </div>
                 <div class="toolbar-left">
                   <button id="openFileBtn" class="toolbar-btn strong"><span class="btn-icon">＋</span><span class="btn-label">上传图片</span></button>
                   <button id="reselectBtn" class="toolbar-btn"><span class="btn-icon">↻</span><span class="btn-label">重新选图</span></button>
@@ -60,13 +83,13 @@
 
               <div id="dropzone" class="dropzone">
                 <div class="drop-inner" id="dropInner">
-                  <div class="upload-glyph" aria-hidden="true">
-                    <span class="upload-glyph__frame"></span>
-                    <span class="upload-glyph__plus">＋</span>
+                  <div class="drop-gridlines"></div>
+                  <div class="drop-badge">CANVAS IDLE / READY</div>
+                  <div class="drop-main">拖拽 / 粘贴</div>
+                  <div class="drop-sub">JPG · PNG · WEBP</div>
+                  <div class="drop-actions">
+                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">打开</span></button>
                   </div>
-                  <div class="drop-main">点击或拖拽上传图片</div>
-                  <div class="drop-sub">支持 JPG / PNG / WEBP，亦可直接粘贴截图</div>
-                  <button id="dropUploadBtn" class="drop-upload" type="button"><span class="btn-icon">＋</span><span class="btn-label">选择图片</span></button>
                 </div>
 
                 <input id="fileInput" type="file" accept="image/*" hidden />
@@ -78,7 +101,7 @@
                       <em id="previewHint">按住 Compare 查看原图</em>
                     </div>
 
-                    <div class="canvas-stage" id="editWrap">
+                    <div class="canvas-stage checkerboard" id="editWrap">
                       <div class="stage-hud">
                         <div class="stage-mode">
                           <span class="stage-mode__label">VIEW</span>
@@ -99,95 +122,125 @@
               </div>
             </section>
 
-            <aside class="control-panel">
-              <section class="panel-module panel-module--status">
-                <div class="module-heading">
-                  <span>状态信息</span>
-                  <em>STATUS</em>
+            <aside class="control-panel frame-sub">
+              <div class="control-head panel-strip module-titlebar">
+                <div class="strip-label strip-label--quiet">
+                  <strong>CONTROL PANEL .SYS</strong>
                 </div>
-                <div class="stats-block">
-                  <div class="stat-card"><span>状态</span><strong id="statusLabel">待机中</strong></div>
-                  <div class="stat-card"><span>标记</span><strong id="maskStateLabel">未标记</strong></div>
-                  <div class="stat-card"><span>输出</span><strong id="formatStateLabel">JPG</strong></div>
+              </div>
+
+              <section class="panel-block panel-block--status">
+                <div class="block-header">状态信息</div>
+                <div class="block-body">
+                  <section class="block stats-block">
+                    <div class="stat-card">
+                      <span>状态</span>
+                      <strong id="statusLabel">待机中</strong>
+                    </div>
+                    <div class="stat-card">
+                      <span>标记</span>
+                      <strong id="maskStateLabel">未标记</strong>
+                    </div>
+                    <div class="stat-card">
+                      <span>输出格式</span>
+                      <strong id="formatStateLabel">JPG</strong>
+                    </div>
+                  </section>
+
+                  <section class="block format-block">
+                    <div class="section-label">输出格式</div>
+                    <div class="segmented segmented--full segmented--triple">
+                      <button data-format="jpeg" class="seg format-btn active">JPG</button>
+                      <button data-format="png" class="seg format-btn">PNG</button>
+                      <button data-format="webp" class="seg format-btn">WEBP</button>
+                    </div>
+                  </section>
+
                 </div>
               </section>
 
-              <section class="panel-module panel-module--format">
-                <div class="module-heading">
-                  <span>输出格式</span>
-                  <em>FORMAT</em>
-                </div>
-                <div class="segmented segmented--triple segmented--full">
-                  <button data-format="jpeg" class="seg format-btn active">JPG</button>
-                  <button data-format="png" class="seg format-btn">PNG</button>
-                  <button data-format="webp" class="seg format-btn">WEBP</button>
+              <section class="panel-block panel-block--tools">
+                <div class="block-header">工具参数</div>
+                <div class="block-body">
+                  <section class="block">
+                    <div class="section-label">画笔大小</div>
+                    <div class="range-row">
+                      <div>当前尺寸</div>
+                      <strong><span id="brushValue">30</span> px</strong>
+                    </div>
+                    <input id="brushSize" type="range" min="5" max="260" value="30" />
+                  </section>
+
+                  <section class="block">
+                    <div class="section-label">标记工具</div>
+                    <div class="segmented segmented--full">
+                      <button id="paintModeBtn" class="seg active">画笔</button>
+                      <button id="eraseModeBtn" class="seg">橡皮</button>
+                    </div>
+                  </section>
                 </div>
               </section>
 
-              <section class="panel-module panel-module--brush">
-                <div class="module-heading">
-                  <span>画笔设置</span>
-                  <em>BRUSH</em>
-                </div>
-                <div class="range-row">
-                  <div>当前尺寸</div>
-                  <strong><span id="brushValue">30</span> px</strong>
-                </div>
-                <input id="brushSize" type="range" min="5" max="260" value="30" />
-                <div class="segmented segmented--full toggle-group">
-                  <button id="paintModeBtn" class="seg active"><span class="seg-icon">✎</span><span>画笔</span></button>
-                  <button id="eraseModeBtn" class="seg"><span class="seg-icon">⌫</span><span>橡皮</span></button>
-                </div>
-                <p id="brushTip" class="assist-text">涂抹要去除的区域。</p>
-              </section>
+              <section class="panel-block panel-block--actions">
+                <div class="block-header">核心操作</div>
+                <div class="block-body">
+                  <section class="block">
+                    <div class="section-label">修复模式</div>
+                    <div class="segmented segmented--full">
+                      <button id="inpaintModeBtn" class="seg active">扩散修复</button>
+                      <button id="alphaModeBtn" class="seg">透明还原</button>
+                    </div>
+                    <div id="inpaintControls" class="alpha-controls">
+                      <label>修复半径 <strong><span id="inpaintRadiusValue">4.5</span> px</strong></label>
+                      <input id="inpaintRadius" type="range" min="1" max="12" step="0.5" value="4.5" />
+                    </div>
+                    <div id="alphaControls" class="alpha-controls hidden">
+                      <label>水印不透明度 <strong><span id="alphaValue">80</span>%</strong></label>
+                      <input id="alphaSlider" type="range" min="1" max="99" value="80" />
+                      <label class="color-row">水印颜色 <input id="colorInput" type="color" value="#ffffff" /></label>
+                    </div>
+                  </section>
 
-              <section class="panel-module panel-module--mode">
-                <div class="module-heading">
-                  <span>去除模式</span>
-                  <em>REMOVE MODE</em>
-                </div>
-                <div class="segmented segmented--full toggle-group">
-                  <button id="inpaintModeBtn" class="seg active"><span class="seg-icon">✦</span><span>扩散修复</span></button>
-                  <button id="alphaModeBtn" class="seg"><span class="seg-icon">◌</span><span>透明还原</span></button>
-                </div>
-                <div id="inpaintControls" class="alpha-controls">
-                  <label>修复半径 <strong><span id="inpaintRadiusValue">4.5</span> px</strong></label>
-                  <input id="inpaintRadius" type="range" min="1" max="12" step="0.5" value="4.5" />
-                </div>
-                <div id="alphaControls" class="alpha-controls hidden">
-                  <label>水印不透明度 <strong><span id="alphaValue">80</span>%</strong></label>
-                  <input id="alphaSlider" type="range" min="1" max="99" value="80" />
-                  <label class="color-row">水印颜色 <input id="colorInput" type="color" value="#ffffff" /></label>
-                </div>
-                <p id="modeTip" class="assist-text">适合不透明水印；半径越大，补全越强。</p>
-              </section>
+                  <section class="block action-block">
+                    <div class="section-label">执行操作</div>
+                    <button id="runBtn" class="primary-btn" disabled><span class="btn-icon">✦</span><span class="btn-label">去除水印</span></button>
+                    <button id="downloadBtn" class="outline-btn" disabled><span class="btn-icon">↓</span><span class="btn-label">下载结果</span></button>
+                    <div class="mini-actions">
+                      <button id="undoBtn" class="ghost-btn" disabled><span class="btn-icon">↶</span><span class="btn-label">撤销</span></button>
+                      <button id="clearMaskBtn" class="ghost-btn" disabled><span class="btn-icon">⌫</span><span class="btn-label">清除标记</span></button>
+                    </div>
+                    <div id="status" class="status"></div>
+                  </section>
 
-              <section class="panel-module panel-module--actions">
-                <div class="module-heading">
-                  <span>执行操作</span>
-                  <em>ACTION</em>
                 </div>
-                <button id="compareHoldBtnPanel" class="outline-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住看原图</span></button>
-                <button id="runBtn" class="primary-btn run-btn" disabled><span class="btn-icon">✦</span><span class="btn-label">去除水印</span></button>
-                <button id="downloadBtn" class="outline-btn" disabled><span class="btn-icon">↓</span><span class="btn-label">下载结果</span></button>
-                <div class="mini-actions">
-                  <button id="undoBtn" class="ghost-btn" disabled><span class="btn-icon">↶</span><span class="btn-label">撤销</span></button>
-                  <button id="clearMaskBtn" class="ghost-btn" disabled><span class="btn-icon">⌫</span><span class="btn-label">清除标记</span></button>
-                </div>
-                <div id="status" class="status"></div>
               </section>
             </aside>
           </div>
+
+          <div class="marquee-wrap device-strip">
+            <div class="marquee-track">IMGEXE WORKSTATION / SINGLE PRIMARY CANVAS / HOLD TO COMPARE / SUPPORT JPG PNG WEBP / DESKTOP-LIKE TOOL FLOW /</div>
+            <div class="marquee-track">IMGEXE WORKSTATION / SINGLE PRIMARY CANVAS / HOLD TO COMPARE / SUPPORT JPG PNG WEBP / DESKTOP-LIKE TOOL FLOW /</div>
+          </div>
         </section>
 
-        <aside class="side rail-right">
-          <button class="rail-item muted"><span class="rail-item__icon">▦</span><em>图片分割.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">◈</span><em>添加水印.exe</em></button>
-          <button class="rail-item active"><span class="rail-item__icon">✦</span><em>去除水印.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>交流社区.exe</em></button>
-          <button class="rail-item muted"><span class="rail-item__icon">∞</span><em>友情链接.exe</em></button>
+        <aside class="side rail-right frame rail-simple">
+          <div class="side-title"><strong>MODULES</strong></div>
+          <button class="rail-item muted"><span class="rail-item__icon">▦</span><em>图片分割</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◈</span><em>添加水印</em></button>
+          <button class="rail-item active"><span class="rail-item__icon">✦</span><em>去除水印</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">◎</span><em>交流社区</em></button>
+          <button class="rail-item muted"><span class="rail-item__icon">∞</span><em>友情链接</em></button>
         </aside>
       </main>
+
+      <footer class="footer-bar">
+        <div class="footer-links">
+          <span>隐私政策</span>
+          <span>用户协议</span>
+          <span>联系我们</span>
+        </div>
+        <div class="footer-copy">© 2026 IMGEXE TOOLBOX · POWERED BY DOINGFB</div>
+      </footer>
     </div>
 
     <script src="./runtime-config.js"></script>
