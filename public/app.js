@@ -330,9 +330,7 @@ window.addEventListener('keyup', (event) => {
 function updateClock() {
   const now = new Date();
   els.clock.textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
-  els.date.textContent = now.toLocaleDateString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
-  });
+  els.date.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
 }
 
 async function loadFile(file) {
@@ -556,7 +554,9 @@ function syncRemoveModeUi() {
   els.modeTip.textContent = isInpaint
     ? '适合不透明水印；半径越大，补全越强。'
     : '适合浅色半透明水印。';
-  els.runBtn.textContent = isInpaint ? '去除水印' : '透明还原';
+  const runBtnLabel = els.runBtn?.querySelector('.btn-label');
+  if (runBtnLabel) runBtnLabel.textContent = isInpaint ? '去除水印' : '透明还原';
+  else els.runBtn.textContent = isInpaint ? '去除水印' : '透明还原';
 }
 
 function setCompareMode(enabled) {
