@@ -275,12 +275,9 @@ function bindCompareButton(button) {
 
 function initTheme() {
   const savedTheme = localStorage.getItem(THEME_KEY);
-  const prefersLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
   state.theme = savedTheme === 'light' || savedTheme === 'dark'
     ? savedTheme
-    : prefersLight
-      ? 'light'
-      : 'dark';
+    : 'dark';
   applyTheme(state.theme);
 }
 
