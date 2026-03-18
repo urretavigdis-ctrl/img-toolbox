@@ -16,15 +16,15 @@
           <div class="brand-mark"><span></span><span></span><span></span><span></span></div>
           <div class="brand-copy">
             <div class="brand-title">imgexe</div>
-            <div class="brand-sub">IMAGE TOOLKIT / WORKSTATION</div>
+            <div class="brand-sub">REMOVE WATERMARK</div>
           </div>
         </div>
 
         <div class="topbar-center topbox">
           <div class="masthead-lines"></div>
           <div class="masthead-copy">
-            <strong>图像工具箱</strong>
-            <span>IMGEXE.COM</span>
+            <strong>去除水印</strong>
+            <span>WORKBENCH</span>
           </div>
           <div class="masthead-lines"></div>
         </div>
@@ -54,18 +54,12 @@
         <section class="workbench frame">
           <div class="panel-title">
             <span>去除水印.exe</span>
-            <strong>IMGEXE WORKBENCH</strong>
+            <strong>单画布</strong>
           </div>
 
           <section class="hero-strip">
             <div class="hero-copy">
-              <p class="eyebrow">REMOVE WATERMARK / SINGLE CANVAS</p>
               <h1>去除水印</h1>
-              <p class="hero-note">默认显示处理结果；需要核对时按住 Compare 查看原图。流程：上传 → 标记 → 修复 → 对比 → 导出。</p>
-            </div>
-            <div class="hero-badges">
-              <span>RESULT</span>
-              <span>HOLD COMPARE</span>
             </div>
           </section>
 
@@ -89,11 +83,11 @@
               <div id="dropzone" class="dropzone">
                 <div class="drop-inner" id="dropInner">
                   <div class="drop-gridlines"></div>
-                  <div class="drop-badge">IMGEXE / DROP AREA</div>
-                  <div class="drop-main">拖拽图片到工作台</div>
-                  <div class="drop-sub">支持 JPG / PNG / WEBP，也支持 Ctrl/Cmd + V 粘贴截图。</div>
+                  <div class="drop-badge">CANVAS IDLE</div>
+                  <div class="drop-main">拖拽或粘贴图片</div>
+                  <div class="drop-sub">JPG / PNG / WEBP</div>
                   <div class="drop-actions">
-                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">选择图片</span></button>
+                    <button id="dropUploadBtn" class="primary-btn drop-upload"><span class="btn-icon">＋</span><span class="btn-label">打开图片</span></button>
                   </div>
                 </div>
 
@@ -102,8 +96,8 @@
                 <div id="workspace" class="workspace hidden">
                   <section class="viewer-card viewer-card--main viewer-card--single active" data-pane="edit">
                     <div class="viewer-head viewer-head--main">
-                      <span>PRIMARY CANVAS / 处理结果默认显示</span>
-                      <em id="previewHint">修复后会直接替换到主画布；按住 Compare 可临时查看原图</em>
+                      <span>PRIMARY CANVAS</span>
+                      <em id="previewHint">按住 Compare 查看原图</em>
                     </div>
 
                     <div class="canvas-stage checkerboard" id="editWrap">
@@ -153,7 +147,7 @@
               <section class="block compare-block">
                 <div class="section-label">对比</div>
                 <button id="compareHoldBtnPanel" class="primary-btn compare-panel-btn" type="button" disabled><span class="btn-icon">◧</span><span class="btn-label">按住看原图</span></button>
-                <p class="tip">按住看原图，松开回结果。</p>
+                <p class="tip">按住查看原图。</p>
               </section>
 
               <section class="block">
@@ -167,7 +161,7 @@
                   <button id="paintModeBtn" class="seg active">画笔</button>
                   <button id="eraseModeBtn" class="seg">橡皮</button>
                 </div>
-                <p class="tip" id="brushTip">画笔模式：涂抹需要去除的水印区域。</p>
+                <p class="tip" id="brushTip">涂抹需去除区域。</p>
               </section>
 
               <section class="block">
@@ -185,7 +179,7 @@
                   <input id="alphaSlider" type="range" min="1" max="99" value="80" />
                   <label class="color-row">水印颜色 <input id="colorInput" type="color" value="#ffffff" /></label>
                 </div>
-                <p class="tip" id="modeTip">扩散修复：适合不透明水印，使用周边纹理补全。</p>
+                <p class="tip" id="modeTip">扩散修复适合不透明水印。</p>
               </section>
 
               <section class="block">
@@ -212,10 +206,10 @@
                 <div class="section-label">提示</div>
                 <div class="tip-list compact">
                   <p>上传图片</p>
-                  <p>涂抹水印区域</p>
+                  <p>标记区域</p>
                   <p>执行修复</p>
-                  <p>按住看原图</p>
-                  <p>透明还原适合浅色半透明水印</p>
+                  <p>按住对比</p>
+                  <p>透明模式适合浅色水印</p>
                 </div>
               </section>
             </aside>
